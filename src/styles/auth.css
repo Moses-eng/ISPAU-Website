@@ -1,0 +1,196 @@
+/* Explicit authentication and session states */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(360px, 0.85fr) minmax(520px, 1.15fr);
+  background: white;
+}
+.auth-brand {
+  background: var(--burgundy-deep);
+  color: white;
+  padding: clamp(38px, 6vw, 88px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.auth-brand > span {
+  margin-top: auto;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 700;
+  color: #dbc6cc;
+}
+.auth-brand h1 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: clamp(2.5rem, 4vw, 4.2rem);
+  line-height: 1;
+  max-width: 560px;
+  margin: 20px 0;
+}
+.auth-brand p {
+  color: #e5d7db;
+  max-width: 510px;
+}
+.auth-brand button {
+  border: 0;
+  background: transparent;
+  color: white;
+  padding: 14px 0;
+  margin-top: 20px;
+}
+.auth-form {
+  width: min(480px, calc(100% - 40px));
+  margin: auto;
+  display: grid;
+  gap: 18px;
+  padding: 56px 0;
+}
+.auth-form h2 {
+  font-size: 34px;
+  color: var(--burgundy-primary);
+  margin: 0;
+}
+.auth-form > p {
+  margin: -10px 0 8px;
+}
+.auth-form .btn {
+  width: 100%;
+}
+.auth-note {
+  display: flex;
+  gap: 12px;
+  padding: 15px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.auth-note svg {
+  color: var(--burgundy-primary);
+}
+.auth-note p {
+  font-size: 12px;
+  margin: 0;
+}
+.staff-entry,
+.sign-out {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--burgundy-primary);
+  font-weight: 650;
+}
+.staff-entry {
+  justify-self: start;
+  padding: 0;
+}
+.session-role {
+  text-align: right;
+  line-height: 1.25;
+}
+.session-role span,
+.session-role small {
+  display: block;
+}
+.session-role span {
+  font-size: 12px;
+  font-weight: 700;
+}
+.session-role small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.session-role svg {
+  vertical-align: -2px;
+  color: var(--success);
+}
+.state-page {
+  min-height: 100vh;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: var(--burgundy-tint);
+}
+.state-page > .logo {
+  position: absolute;
+  top: 26px;
+  left: 30px;
+}
+.state-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: white;
+  color: var(--burgundy-primary);
+  border: 1px solid var(--border);
+}
+.state-page h1 {
+  font-family: "Source Serif 4", Georgia, serif;
+  color: var(--burgundy-primary);
+  font-size: 42px;
+  margin: 22px 0 8px;
+}
+.state-page p {
+  max-width: 560px;
+}
+.state-page small {
+  max-width: 620px;
+  color: var(--muted);
+  margin-top: 28px;
+}
+.system.section {
+  padding: 24px 0 70px;
+}
+.activation-queue {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 28px;
+  border-left: 3px solid var(--burgundy-primary);
+}
+.activation-queue h3,
+.activation-queue p {
+  margin: 4px 0 0;
+}
+.activation-queue > div:nth-child(2) {
+  display: grid;
+  font-size: 13px;
+}
+.activation-queue small {
+  color: var(--muted);
+}
+.intelligence-panel {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 40px;
+}
+.intelligence-panel h3 {
+  margin: 8px 0 4px;
+}
+.intelligence-panel dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-left: 1px solid var(--border);
+}
+.intelligence-panel dl div {
+  padding: 8px 18px;
+  border-right: 1px solid var(--border);
+}
+.intelligence-panel dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.intelligence-panel dd {
+  margin: 8px 0 0;
+  color: var(--burgundy-primary);
+  font-size: 22px;
+  font-weight: 700;
+}

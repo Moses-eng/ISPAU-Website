@@ -1,0 +1,79 @@
+.icon {
+  @apply flex-none;
+}
+.btn {
+  min-height: 46px;
+  border-radius: 7px;
+  padding: 0 19px;
+  border: 1px solid transparent;
+  @apply inline-flex items-center justify-center;
+  gap: 9px;
+  font-weight: 650;
+  transition: 0.18s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn-primary {
+  background: var(--teal);
+  color: white;
+  box-shadow: 0 6px 14px rgba(101, 11, 35, 0.2);
+}
+.btn-primary:hover {
+  background: var(--teal-dark);
+}
+.btn-secondary {
+  border-color: var(--border);
+  color: var(--navy);
+  background: white;
+}
+.btn-ghost {
+  color: var(--teal);
+  background: transparent;
+}
+.btn-danger {
+  color: var(--danger);
+  border-color: #ddb9c3;
+  background: white;
+}
+.button-row {
+  @apply flex items-center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  min-height: 27px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: #f4edef;
+  color: #6c5960;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tag-dot {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+}
+.tag-success {
+  color: var(--success);
+  background: var(--success-bg);
+}
+.tag-warning {
+  color: var(--warning);
+  background: var(--warning-bg);
+}
+.tag-danger {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+.tag-info {
+  color: var(--info);
+  background: var(--info-bg);
+}

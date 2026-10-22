@@ -1,0 +1,10 @@
+export type ApplicationStatus =
+  | "Draft"
+  | "Submitted"
+  | "Under review"
+  | "Clarification needed"
+  | "Decision pending"
+  | "Approved awaiting payment"
+  | "Active"
+  | "Deferred"
+  | "Declined"

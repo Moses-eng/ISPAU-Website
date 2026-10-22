@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.vite/
+.cache/
+coverage/
+*.tsbuildinfo
+*.log
+.env*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Local editor and agent settings
+.vscode/
+.idea/
+.codex/
+.figma/
+AGENTS.md
+
+# Local verification output
+.tmp-*/
+.responsive-check.cjs

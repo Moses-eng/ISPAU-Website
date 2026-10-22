@@ -1,0 +1,88 @@
+import type { PublicMember } from "@/types/PublicMember"
+
+export const sampleMembers: PublicMember[] = [
+  {
+    id: "mtn-uganda",
+    name: "MTN Uganda",
+    initials: "MTN",
+    identity: "mtn",
+    logoSrc: "/company-logos/mtn.webp",
+    description:
+      "Sample public profile for mobile, enterprise and connectivity services.",
+    city: "Kampala",
+    district: "Kampala",
+    services: ["Mobile connectivity", "Business connectivity"],
+    coverage: ["Uganda"],
+    website: "mtn.co.ug",
+  },
+  {
+    id: "airtel-uganda",
+    name: "Airtel Uganda",
+    initials: "airtel",
+    identity: "airtel",
+    logoSrc: "/company-logos/airtel.png",
+    description:
+      "Sample public profile for mobile communications and business connectivity.",
+    city: "Kampala",
+    district: "Kampala",
+    services: ["Mobile connectivity", "Business services"],
+    coverage: ["Uganda"],
+    website: "airtel.co.ug",
+  },
+  {
+    id: "lyca-mobile",
+    name: "Lyca Mobile",
+    initials: "LYCA",
+    identity: "lyca",
+    logoSrc: "/company-logos/lyca.png",
+    description:
+      "Sample public profile for mobile communications and related connectivity services.",
+    city: "Kampala",
+    district: "Kampala",
+    services: ["Mobile connectivity", "Voice and data"],
+    coverage: ["Uganda"],
+    website: "lycamobile.ug",
+  },
+  {
+    id: "liquid-telecom",
+    name: "Liquid Telecom",
+    initials: "LIQUID",
+    identity: "liquid",
+    logoSrc: "/company-logos/liquid.webp",
+    description:
+      "Sample public profile for enterprise connectivity and digital infrastructure services.",
+    city: "Kampala",
+    district: "Kampala",
+    services: ["Enterprise connectivity", "Digital infrastructure"],
+    coverage: ["Uganda", "East Africa"],
+    website: "liquid.tech",
+  },
+  {
+    id: "safaricom",
+    name: "Safaricom",
+    initials: "Safaricom",
+    identity: "safaricom",
+    logoSrc: "/company-logos/safaricom.webp",
+    description:
+      "Sample public profile for mobile communications and enterprise services.",
+    city: "Nairobi",
+    district: "Nairobi",
+    services: ["Mobile connectivity", "Enterprise services"],
+    coverage: ["East Africa"],
+    website: "safaricom.co.ke",
+  },
+  {
+    id: "starlink",
+    name: "Starlink",
+    initials: "STARLINK",
+    identity: "starlink",
+    logoSrc: "/company-logos/starlink.png",
+    description:
+      "Sample public profile for satellite-based internet connectivity services.",
+    city: "Kampala",
+    district: "Kampala",
+    services: ["Satellite internet", "Business connectivity"],
+    coverage: ["Uganda"],
+    website: "starlink.com",
+  },
+]
