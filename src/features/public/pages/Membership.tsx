@@ -17,7 +17,7 @@ export default function Membership({ go }: { go: (v: View) => void }) {
         image={heroSlides[2]}
       >
         <Button onClick={() => go("apply")}>Apply Now</Button>
-        <Button kind="secondary" onClick={() => go("applicant")}>
+        <Button kind="secondary" onClick={() => go("apply")}>
           Resume Application
         </Button>
         <button className="text-link" onClick={() => go("member")}>

@@ -1,5 +1,6 @@
-// Disabled until the Trade Credit release is approved.
-export const ENABLE_TRADE_CREDIT = false
+import { workspaceFlags } from "@/config/workspace"
+// Legacy public promotion remains hidden; private workspaces have their own enabled flag.
+export const ENABLE_TRADE_CREDIT = workspaceFlags.publicTradeCreditEnabled
 
 export const TRADE_CREDIT_ROUTES = new Set([
   "trade",

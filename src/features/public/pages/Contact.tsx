@@ -34,27 +34,41 @@ export default function Contact({ go }: { go: (v: View) => void }) {
           <div className="notice">
             <Icon name="lock" />
             <p>
-              Confidential record requests and disputes use dedicated
-              identity-verification forms.
+              Confidential record requests and disputes require identity
+              verification.
             </p>
           </div>
         </div>
-        <FormCard title="Send an enquiry">
-          <Field label="Name" placeholder="Your full name" />
-          <Field label="Work email" placeholder="name@organisation.ug" />
-          <Field label="Organisation" placeholder="Organisation name" />
-          <Field
-            label="Enquiry type"
-            as="select"
-            options={[
-              "General enquiry",
-              "Membership guidance",
-              "Services & activities",
-            ]}
-          />
-          <Field label="Message" placeholder="How can we help?" as="textarea" />
-          <Button>Send enquiry</Button>
-        </FormCard>
+        <div>
+          <div className="flex flex-wrap gap-3 mb-6">
+            <Button kind="secondary" onClick={() => go("record-request")}>
+              Request my record
+            </Button>
+            <Button kind="secondary" onClick={() => go("dispute")}>
+              Dispute or appeal
+            </Button>
+          </div>
+          <FormCard title="Send an enquiry">
+            <Field label="Name" placeholder="Your full name" />
+            <Field label="Work email" placeholder="name@organisation.ug" />
+            <Field label="Organisation" placeholder="Organisation name" />
+            <Field
+              label="Enquiry type"
+              as="select"
+              options={[
+                "General enquiry",
+                "Membership guidance",
+                "Services & activities",
+              ]}
+            />
+            <Field
+              label="Message"
+              placeholder="How can we help?"
+              as="textarea"
+            />
+            <Button>Send enquiry</Button>
+          </FormCard>
+        </div>
       </section>
     </PublicShell>
   )

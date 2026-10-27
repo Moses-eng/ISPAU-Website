@@ -4,7 +4,7 @@ import Icon from "@/components/ui/Icon"
 import PageHero from "@/components/ui/PageHero"
 import PublicShell from "@/components/layout/PublicShell"
 import type { View } from "@/types/View"
-import { sampleMembers } from "@/features/directory/data/sampleMembers"
+import usePublicDirectory from "@/hooks/usePublicDirectory"
 import { useState } from "react"
 
 export default function Directory({
@@ -14,6 +14,7 @@ export default function Directory({
   go: (v: View) => void
   onViewProfile: (id: string) => void
 }) {
+  const sampleMembers = usePublicDirectory()
   const [query, setQuery] = useState("")
   const [service, setService] = useState("All services")
   const [coverage, setCoverage] = useState("All coverage areas")

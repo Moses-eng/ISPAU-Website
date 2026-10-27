@@ -1,16 +1,16 @@
 import Button from "@/components/ui/Button"
-import Field from "@/components/ui/Field"
-import Icon from "@/components/ui/Icon"
+
 import Logo from "@/components/layout/Logo"
-import RequiredText from "@/features/membership/components/RequiredText"
 import type { View } from "@/types/View"
 
 export default function Login({
   go,
   onSignIn,
+  staffAccessEnabled = false,
 }: {
   go: (v: View) => void
   onSignIn: () => void
+  staffAccessEnabled?: boolean
 }) {
   return (
     <div className="auth-page">
@@ -25,26 +25,19 @@ export default function Login({
         <button onClick={() => go("home")}>← Return to public website</button>
       </div>
       <main className="auth-form">
-        <span className="eyebrow">Secure sign in</span>
+        <span className="eyebrow">Member access</span>
         <h2>Welcome back</h2>
-        <p>Use the verified work email associated with your organisation.</p>
-        <RequiredText />
-        <Field label="Work email" placeholder="name@organisation.ug" required />
-        <Field label="Password" placeholder="Enter your password" required />
-        <Button onClick={onSignIn}>Sign in to workspace</Button>
+        <p>Continue to your organisation’s workspace.</p>
+
+        <Button onClick={onSignIn}>Open organisation workspace</Button>
         <button className="text-link" onClick={() => go("forgot-password")}>
           Forgot password?
         </button>
-        <div className="auth-note">
-          <Icon name="shield" />
-          <p>
-            Front-end authentication preview. Production access to records and
-            files must be enforced by the backend.
-          </p>
-        </div>
-        <button className="staff-entry" onClick={() => go("staff-login")}>
-          ISPAU staff sign in
-        </button>
+        {staffAccessEnabled && (
+          <button className="staff-entry" onClick={() => go("staff-login")}>
+            ISPAU staff sign in
+          </button>
+        )}
       </main>
     </div>
   )

@@ -1,60 +1,36 @@
 # ISPAU Website
 
-Frontend for the Internet Service Providers Association of Uganda, built with React, TypeScript, Vite and Tailwind CSS 4.
+React 19, TypeScript, Vite 8 and Tailwind CSS 4 frontend for the Internet Service Providers Association of Uganda.
 
-## Run locally
+## Local setup
 
-Install Node.js 22.12 or later, then run:
+Use Node.js 22.12 or later and pnpm 10.34.3.
 
 ```sh
-git clone https://github.com/Moses-eng/ISPAU-Website.git
-cd ISPAU-Website
-npm install --global pnpm@10.34.3
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the local address printed by Vite, normally http://localhost:5173. No API keys, environment file or backend server are needed to view the frontend.
+Open the address printed by Vite, normally `http://localhost:5173`.
 
-To view the site from a phone or tablet on the same network, run `pnpm dev --host 0.0.0.0` and open the network address Vite prints. The development computer must allow that connection through its firewall.
+- `/` — public website
+- `/portal` — ISP and applicant workspace
+
+For another device on the same network, run `pnpm dev --host 0.0.0.0` and use the network address printed by Vite.
 
 ## Commands
 
-| Command             | Purpose                                           |
-| ------------------- | ------------------------------------------------- |
-| `pnpm dev`          | Start development with automatic reload           |
-| `pnpm check`        | Check formatting, TypeScript and production build |
-| `pnpm typecheck`    | Check TypeScript without generating files         |
-| `pnpm build`        | Create the production site in `dist/`             |
-| `pnpm preview`      | Preview the production build locally              |
-| `pnpm format`       | Format source, styles and documentation           |
-| `pnpm format:check` | Check formatting without changing files           |
+- `pnpm check` — formatting, workflow tests, TypeScript and build
+- `pnpm build` — production files in `dist/`
+- `pnpm preview` — serve the production build
+- `pnpm format` — format source files
 
-## Project layout
+## Structure
 
-```text
-src/
-  app/          Application entry and route composition
-  components/   Shared UI elements and page layouts
-  config/       Navigation configuration
-  features/     Pages, components and data grouped by feature
-  hooks/        Shared React hooks
-  styles/       Tailwind entry, theme and application styles
-  types/        Shared TypeScript models
-public/         Logos and other static assets
-docs/           Architecture and backend integration notes
-```
+The `main` branch contains the public website and ISP portal. Staff administration is maintained on `ISPAU-staff-dashboard`, using the same shared components and services.
 
-The feature folders cover the public website, company directory, authentication, membership applications, member portal, billing, administration and deferred Trade Credit work.
+`src/app` handles route composition. The ISP portal is in `src/features/portal` and public pages are in `src/features/public`. Other domain logic lives in `src/features`; shared controls and layouts live in `src/components`. `src/config` contains navigation and feature settings, `src/services` contains data adapters, and `src/styles` contains Tailwind and shared theme rules. Imports beginning with `@/` resolve to `src/`.
 
-Use shared components such as `Button`, `NavigationDropdown`, `MenuToggle`, `SectionTitle` and `CompanyLogo` instead of copying their markup. Keep feature-specific components and data with their feature. Imports beginning with `@/` resolve to `src/`.
+The repository contains the frontend and local data adapters. Authentication, private storage, email delivery and persistent records require API integration. No secrets belong in client-side code.
 
-Tailwind runs through the Vite plugin. Shared design tokens and existing custom styles live in `src/styles/`. Keep the stylesheet import order when changing layouts.
-
-## Current scope
-
-This is a frontend demonstration. Member listings, authentication, invoices and workflow actions use sample data and browser state. Client-side roles do not authorize real data access. Trade Credit remains disabled until its separate release.
-
-Company logos are included in the repository. Photography and web fonts load from external services and need an internet connection. Search-engine indexing is disabled until public launch.
-
-See [architecture](docs/architecture.md), [backend integration](docs/backend-integration.md) and [responsive checks](docs/responsive-qa.md).
+See [architecture](docs/architecture.md) for module ownership. Static hosting must support SPA fallbacks for `/portal`.

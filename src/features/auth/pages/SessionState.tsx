@@ -39,8 +39,7 @@ export default function SessionState({
         </Button>
       </div>
       <small>
-        Restricted routes cannot be opened by entering their address. Real
-        authorisation must be enforced by the backend.
+        Contact the Secretariat if you need help accessing your account.
       </small>
     </div>
   )

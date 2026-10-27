@@ -1,34 +1,25 @@
 # Architecture
 
-## Application flow
+`src/main.tsx` mounts `src/app/ApplicationRoot.tsx`. Public pages use `PublicShell`; `/portal` uses the shared `WorkspaceShell`. The staff branch registers `/staff` against the same shell.
 
-`src/main.tsx` imports the global styles and mounts `src/app/App.tsx`. App composes feature pages and manages hash navigation, demo sessions and the selected directory member. `src/types/View.ts` defines the available routes.
+## Module ownership
 
-Public pages use `PublicShell`, which supplies the shared header and footer. Signed-in workspaces use `Portal`, which supplies role-specific navigation and the responsive drawer.
+- `src/app`: route composition and workspace entry.
+- `src/features/portal`: applicant and ISP pages.
+- `src/features/staff`: ISPAU administration pages on the staff branch.
+- `src/features/membership`: shared forms, records and membership workflow.
+- `src/features/trade-credit/workspace`: payment records, verification, references and disputes.
+- `src/components`: shared UI, navigation, tables, dialogs and layouts.
+- `src/config`: navigation and feature settings.
+- `src/services`: replaceable data adapters.
+- `src/mocks`: example records.
+- `src/styles`: Tailwind entry, theme and application styles.
+- `tests`: workflow and permission checks.
 
-## Reuse and ownership
+Use default exports for components and named exports for data and types. Keep domain logic out of shared UI. Preserve stylesheet import order in `src/styles/index.css`.
 
-- `components/ui/`: buttons, form fields, icons, section headings and menu toggles.
-- `components/layout/`: public and portal layouts and the reusable navigation dropdown.
-- `config/navigation.ts`: public links and dropdown items.
-- `hooks/useMediaQuery.ts`: shared breakpoint subscription and cleanup.
-- `features/<feature>/`: the pages, data, components and utilities owned by that feature.
-- `types/`: models shared across multiple features.
+ISP tools are common across organisations, while private records remain scoped by organisation. Staff sections retain their action permissions when grouped in navigation. Trade Credit participation requires explicit ISPAU provisioning. Public directory views use approved profile fields only.
 
-Components have default exports. Data and types use named exports. Use the `@/` alias for imports from `src/`. Shared UI must not depend on feature pages. Keep domain data and transport logic out of shared UI.
+API integration must enforce permissions, validate transitions, protect files and persist audit records on the server. Keep transport code in data adapters so UI components remain reusable.
 
-## Styling
-
-`styles/index.css` imports Tailwind, design tokens and the stylesheets in their cascade order. `responsive.css` contains the final breakpoint adjustments. Theme colours are available as Tailwind utilities, including `bg-brand`, `text-brand` and `bg-brand-tint`.
-
-Use shared components and Tailwind utilities for new interface work. Keep custom rules for complex selectors and existing design details. Changing stylesheet import order can change the cascade.
-
-## Navigation and demo state
-
-Routes use URL hashes such as `/#home`, `/#membership` and `/#directory`. Unknown routes fall back to Home. Demo role requirements are defined in App. Company selection is held in memory; a future integration should encode stable profile IDs in URLs.
-
-The Trade Credit feature flag is in `features/trade-credit/feature.ts`. Its pages and data remain within that feature but its routes are unavailable while the flag is false.
-
-## Production
-
-`pnpm build` checks TypeScript and creates static files in `dist/`. Deploy those files to a static web host. Backend services can be integrated later without changing the static asset structure. The public directory is copied into the build, so company logos require no external storage service.
+`src/app/workspaceModules.ts` is the branch registration point. It does not import staff screens on `main`; the staff branch registers those screens without duplicating the public site or portal.

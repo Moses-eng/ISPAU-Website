@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && node --experimental-strip-types node_modules/vite/bin/vite.js build --configLoader native",
     "preview": "vite preview",
-    "format": "prettier --write src docs .github *.json *.html *.md *.ts .prettierrc.json",
+    "format": "prettier --write src tests docs .github *.json *.html *.md *.ts .prettierrc.json",
     "typecheck": "tsc --noEmit",
-    "format:check": "prettier --check src docs .github *.json *.html *.md *.ts .prettierrc.json",
-    "check": "pnpm format:check && pnpm build"
+    "format:check": "prettier --check src tests docs .github *.json *.html *.md *.ts .prettierrc.json",
+    "check": "pnpm format:check && pnpm test && pnpm build",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "dependencies": {
     "react": "^19.0.0",

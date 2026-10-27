@@ -1,3 +1,15 @@
+import LicenceEntries from "@/features/membership/components/LicenceEntries"
+import Dialog from "@/components/dashboard/Dialog"
+import ApplicationReviewSummary from "@/features/membership/components/ApplicationReviewSummary"
+
+import type {
+  Actor,
+  Application,
+  FileRecord,
+} from "@/features/membership/types/workspace"
+import { membershipService } from "@/services/membershipService"
+import { acceptFile } from "@/features/membership/services/files"
+import { validateApplication } from "@/features/membership/services/validation"
 import ApplicationInput from "@/features/membership/components/ApplicationInput"
 import Button from "@/components/ui/Button"
 import Icon from "@/components/ui/Icon"
@@ -13,19 +25,44 @@ import { useState } from "react"
 
 export default function MembershipApplication({
   go,
+  workspaceApplication,
+  actor,
+  onFeedback,
 }: {
   go: (v: View) => void
+  workspaceApplication?: Application
+  actor?: Actor
+  onFeedback?: (message: string, error?: boolean) => void
 }) {
   const [step, setStep] = useState(0)
   const [saveState, setSaveState] = useState<
     "saved" | "saving" | "failed" | "unsaved"
   >("unsaved")
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [uploads, setUploads] = useState<Record<string, string>>({})
+  const [uploads, setUploads] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      (workspaceApplication?.evidence || []).map((file) => [
+        file.category,
+        file.name,
+      ]),
+    ),
+  )
+  const [evidenceRecords, setEvidenceRecords] = useState<FileRecord[]>(
+    workspaceApplication?.evidence || [],
+  )
   const [confirmSubmit, setConfirmSubmit] = useState(false)
-  const [licenceEntries, setLicenceEntries] = useState(1)
+  const [licenceEntries, setLicenceEntries] = useState(
+    Number(workspaceApplication?.values.licenceEntries || 1),
+  )
   const errorSummary = useRef<HTMLDivElement>(null)
   const [values, setValues] = useState<MembershipApplicationValues>(() => {
+    if (workspaceApplication)
+      return {
+        registrationCountry: "Uganda",
+        directoryConsent: false,
+        promotionalConsent: false,
+        ...workspaceApplication.values,
+      }
     const saved = localStorage.getItem("ispau-membership-draft")
     if (saved) {
       try {
@@ -47,7 +84,12 @@ export default function MembershipApplication({
     }
   })
   const setValue = (name: string, value: string | boolean) => {
-    setValues((current) => ({ ...current, [name]: value }))
+    setValues((current) => {
+      const next = { ...current, [name]: value }
+      if (current.sameRepresentative && name.startsWith("applicant"))
+        next[name.replace("applicant", "representative")] = value
+      return next
+    })
     setErrors((current) => ({ ...current, [name]: "" }))
     setSaveState("unsaved")
   }
@@ -63,6 +105,18 @@ export default function MembershipApplication({
     ) {
       return true
     }
+    const match = name.match(/^licence(Type|Status|Holder|Number)(\d+)$/)
+    if (
+      match &&
+      values.licenceRelevant === "Yes" &&
+      Number(match[2]) <= licenceEntries
+    )
+      return (
+        match[1] !== "Number" ||
+        values[`licenceStatus${match[2]}`] !== "Pending"
+      )
+    if (name === "licenceExplanation")
+      return String(values.licenceRelevant || "").startsWith("No")
     const rule = membershipFormSchema.find((item) => item.name === name)
     return typeof rule?.required === "function"
       ? rule.required(values)
@@ -126,6 +180,18 @@ export default function MembershipApplication({
       stepFields[2].push("licenceNumber2")
     }
   }
+  if (String(values.licenceRelevant || "").startsWith("No"))
+    stepFields[2].push("licenceExplanation")
+  if (values.licenceRelevant === "Yes")
+    for (let index = 3; index <= licenceEntries; index++) {
+      stepFields[2].push(
+        `licenceType${index}`,
+        `licenceStatus${index}`,
+        `licenceHolder${index}`,
+      )
+      if (values[`licenceStatus${index}`] !== "Pending")
+        stepFields[2].push(`licenceNumber${index}`)
+    }
   if (values.pdpoStatus === "Registered") stepFields[5].push("pdpoEvidence")
   const validateFields = (names: string[]) => {
     const next: Record<string, string> = {}
@@ -155,7 +221,15 @@ export default function MembershipApplication({
   const saveDraft = () => {
     setSaveState("saving")
     try {
-      localStorage.setItem("ispau-membership-draft", JSON.stringify(values))
+      if (workspaceApplication && actor)
+        membershipService.dispatch(actor, {
+          type: "save-draft",
+          id: workspaceApplication.id,
+          values: { ...values, licenceEntries: String(licenceEntries) },
+          evidence: evidenceRecords,
+        })
+      else
+        localStorage.setItem("ispau-membership-draft", JSON.stringify(values))
       window.setTimeout(() => setSaveState("saved"), 450)
     } catch {
       setSaveState("failed")
@@ -171,10 +245,33 @@ export default function MembershipApplication({
   const submitApplication = () => {
     const allFields = stepFields.flat()
     if (!validateFields(allFields)) return
+    const validation = validateApplication(
+      { ...values, licenceEntries: String(licenceEntries) },
+      evidenceRecords,
+    )
+    if (Object.keys(validation).length) {
+      setErrors(validation)
+      errorSummary.current?.focus()
+      return
+    }
     setConfirmSubmit(true)
   }
   const confirmApplicationSubmission = () => {
-    localStorage.removeItem("ispau-membership-draft")
+    if (workspaceApplication && actor) {
+      try {
+        membershipService.dispatch(actor, {
+          type: "submit",
+          id: workspaceApplication.id,
+          values: { ...values, licenceEntries: String(licenceEntries) },
+          evidence: evidenceRecords,
+        })
+        onFeedback?.("Application recorded. Acknowledgement prepared.")
+      } catch (error) {
+        setErrors({ submission: (error as Error).message })
+        setConfirmSubmit(false)
+        return
+      }
+    } else localStorage.removeItem("ispau-membership-draft")
     go("submitted")
   }
   const input = (
@@ -372,6 +469,7 @@ export default function MembershipApplication({
               </div>
             </section>
           )}
+
           {step === 2 && (
             <section className="form-section">
               <div className="field-grid">
@@ -384,8 +482,9 @@ export default function MembershipApplication({
                   input("pdpoReference", "PDPO reference", undefined, true)}
                 {values.pdpoStatus === "Registered" &&
                   input("pdpoValidity", "PDPO validity", undefined, true)}
-                {(values.pdpoStatus === "Pending" ||
-                  values.pdpoStatus === "Not applicable") &&
+                {["Pending", "Not applicable"].includes(
+                  String(values.pdpoStatus),
+                ) &&
                   input(
                     "pdpoExplanation",
                     "PDPO status explanation",
@@ -397,90 +496,36 @@ export default function MembershipApplication({
                   "Yes",
                   "No — not applicable to activities",
                 ])}
+                {String(values.licenceRelevant || "").startsWith("No") &&
+                  input(
+                    "licenceExplanation",
+                    "Why a licence is not applicable",
+                    undefined,
+                    false,
+                    "textarea",
+                  )}
               </div>
               {values.licenceRelevant === "Yes" && (
-                <div className="conditional-panel">
-                  <div className="section-row">
-                    <h3>Licence entry 1</h3>
-                    <Button
-                      kind="secondary"
-                      onClick={() => setLicenceEntries(2)}
-                    >
-                      Add another licence
-                    </Button>
-                  </div>
-                  <div className="field-grid">
-                    {input("licenceType", "Licence type")}
-                    {input("licenceStatus", "Licence status", [
-                      "Valid",
-                      "Pending",
-                      "Expired",
-                    ])}
-                    {values.licenceStatus !== "Pending" &&
-                      input("licenceNumber", "Licence number")}
-                    {input("licenceHolder", "Licence holder")}
-                    {input(
-                      "licenceValidity",
-                      "Licence validity",
-                      undefined,
-                      true,
-                    )}
-                  </div>
-                  <p className="helper">
-                    Pending or expired status is recorded for staff review; it
-                    does not automatically reject or verify the application.
-                  </p>
-                  {licenceEntries > 1 && (
-                    <div className="additional-licence">
-                      <div className="section-row">
-                        <h3>Licence entry 2</h3>
-                        <button
-                          className="text-link"
-                          onClick={() => setLicenceEntries(1)}
-                        >
-                          Remove entry
-                        </button>
-                      </div>
-                      <div className="field-grid">
-                        <ApplicationInput
-                          name="licenceType2"
-                          label="Licence type"
-                          values={values}
-                          errors={errors}
-                          setValue={(name, value) => setValue(name, value)}
-                          required
-                        />
-                        <ApplicationInput
-                          name="licenceStatus2"
-                          label="Licence status"
-                          values={values}
-                          errors={errors}
-                          setValue={(name, value) => setValue(name, value)}
-                          required
-                          as="select"
-                          options={["Valid", "Pending", "Expired"]}
-                        />
-                        <ApplicationInput
-                          name="licenceHolder2"
-                          label="Licence holder"
-                          values={values}
-                          errors={errors}
-                          setValue={(name, value) => setValue(name, value)}
-                          required
-                        />
-                        <ApplicationInput
-                          name="licenceNumber2"
-                          label="Licence number"
-                          values={values}
-                          errors={errors}
-                          setValue={(name, value) => setValue(name, value)}
-                          required={values.licenceStatus2 !== "Pending"}
-                          optional={values.licenceStatus2 === "Pending"}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <LicenceEntries
+                  values={values}
+                  errors={errors}
+                  onChange={setValue}
+                  count={licenceEntries}
+                  onCount={(next) => {
+                    setLicenceEntries(next)
+                    setValues((current) =>
+                      Object.fromEntries(
+                        Object.entries(current).filter(([key]) => {
+                          const match = key.match(
+                            /^licence(?:Type|Status|Holder|Number)(\d+)$/,
+                          )
+                          return !match || Number(match[1]) <= next
+                        }),
+                      ),
+                    )
+                    setSaveState("unsaved")
+                  }}
+                />
               )}
             </section>
           )}
@@ -579,7 +624,7 @@ export default function MembershipApplication({
                 ],
                 [
                   "authorityEvidence",
-                  "One authority document or confirmed officer approval",
+                  "Representative authority evidence",
                   true,
                 ],
                 [
@@ -606,35 +651,63 @@ export default function MembershipApplication({
                     </span>
                     {uploads[String(name)] ? (
                       <>
-                        <Tag tone="success">Accepted · scan simulated</Tag>
+                        <Tag tone="success">Selected · not verified</Tag>
                         <Button
                           kind="secondary"
-                          onClick={() =>
+                          onClick={() => {
+                            setEvidenceRecords((current) =>
+                              current.filter(
+                                (file) => file.category !== String(name),
+                              ),
+                            )
                             setUploads((current) => ({
                               ...current,
                               [String(name)]: "",
                             }))
-                          }
+                            setSaveState("unsaved")
+                          }}
                         >
                           Replace or remove
                         </Button>
                       </>
                     ) : (
-                      <Button
-                        kind="secondary"
-                        onClick={() => {
-                          setUploads((current) => ({
-                            ...current,
-                            [String(name)]: `${String(name)}.pdf`,
-                          }))
-                          setErrors((current) => ({
-                            ...current,
-                            [String(name)]: "",
-                          }))
-                        }}
-                      >
-                        Choose file
-                      </Button>
+                      <label className="field">
+                        Choose private file *
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          aria-required="true"
+                          aria-label={String(label)}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0]
+                            if (!file) return
+                            try {
+                              const record = acceptFile(file, String(name))
+                              setSaveState("unsaved")
+                              setEvidenceRecords((current) => [
+                                ...current.filter(
+                                  (item) => item.category !== String(name),
+                                ),
+                                record,
+                              ])
+                              setUploads((current) => ({
+                                ...current,
+                                [String(name)]: file.name,
+                              }))
+                              setErrors((current) => ({
+                                ...current,
+                                [String(name)]: "",
+                              }))
+                            } catch (error) {
+                              setErrors((current) => ({
+                                ...current,
+                                [String(name)]: (error as Error).message,
+                              }))
+                              event.target.value = ""
+                            }
+                          }}
+                        />
+                      </label>
                     )}
                     {errors[String(name)] && (
                       <small className="inline-error">
@@ -721,17 +794,38 @@ export default function MembershipApplication({
                   <small>Published only after separate profile approval</small>
                 </span>
                 {uploads.publicLogo && <Tag tone="success">Logo selected</Tag>}
-                <Button
-                  kind="secondary"
-                  onClick={() =>
-                    setUploads((current) => ({
-                      ...current,
-                      publicLogo: "company-logo.png",
-                    }))
-                  }
-                >
-                  {uploads.publicLogo ? "Replace logo" : "Choose logo"}
-                </Button>
+                <label className="field">
+                  Select public logo (optional)
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      if (!file) return
+                      try {
+                        if (!file.type.startsWith("image/"))
+                          throw Error("Choose a JPG or PNG logo.")
+                        const selectedLogo = acceptFile(file, "publicLogo")
+                        setValue(
+                          "publicLogoReference",
+                          `local:${selectedLogo.id}`,
+                        )
+                        setUploads((current) => ({
+                          ...current,
+                          publicLogo: file.name,
+                        }))
+                      } catch (error) {
+                        setErrors((current) => ({
+                          ...current,
+                          publicLogo: (error as Error).message,
+                        }))
+                      }
+                    }}
+                  />
+                  {errors.publicLogo && (
+                    <small role="alert">{errors.publicLogo}</small>
+                  )}
+                </label>
               </div>
               <Button kind="secondary" onClick={() => setStep(7)}>
                 Complete public profile later
@@ -740,21 +834,13 @@ export default function MembershipApplication({
           )}
           {step === 7 && (
             <>
-              <section className="review-sections">
-                {applicationSectionNames.slice(0, 7).map((name, index) => (
-                  <div className="review-row" key={name}>
-                    <span>
-                      <strong>{name}</strong>
-                      <small>
-                        {index === 6 && !values.publicName
-                          ? "Optional details omitted — complete later"
-                          : "Review completed answers"}
-                      </small>
-                    </span>
-                    <button onClick={() => setStep(index)}>Edit</button>
-                  </div>
-                ))}
-              </section>
+              <ApplicationReviewSummary
+                sections={applicationSectionNames}
+                fields={stepFields}
+                values={values}
+                evidence={evidenceRecords}
+                onEdit={setStep}
+              />
               <section className="form-section declarations">
                 <h3>Required declarations</h3>
                 {declaration(
@@ -787,7 +873,7 @@ export default function MembershipApplication({
                 )}
                 {declaration(
                   "privacyDeclaration",
-                  "I acknowledge the approved privacy notice (version 4.0).",
+                  "I acknowledge the privacy information provided with this application.",
                 )}
                 <hr />
                 {declaration(
@@ -823,23 +909,24 @@ export default function MembershipApplication({
         </main>
       </div>
       {confirmSubmit && (
-        <div className="confirmation-panel" role="dialog" aria-modal="true">
-          <div>
-            <h2>Submit membership application?</h2>
-            <p>
-              You can no longer edit the submitted version unless the membership
-              team requests clarification.
-            </p>
-            <div className="button-row">
-              <Button kind="secondary" onClick={() => setConfirmSubmit(false)}>
-                Return to review
-              </Button>
-              <Button onClick={confirmApplicationSubmission}>
-                Confirm Submission
-              </Button>
-            </div>
+        <Dialog
+          title="Submit membership application?"
+          onClose={() => setConfirmSubmit(false)}
+        >
+          <p>
+            Review your answers before confirming. Submitted versions are
+            read-only unless the membership team requests clarification. Your
+            application will be recorded for review.
+          </p>
+          <div className="button-row">
+            <Button kind="secondary" onClick={() => setConfirmSubmit(false)}>
+              Return to review
+            </Button>
+            <Button onClick={confirmApplicationSubmission}>
+              Confirm Submission
+            </Button>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   )

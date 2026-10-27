@@ -3,7 +3,14 @@ export type PublicMember = {
   name: string
   initials: string
   logoSrc: string
-  identity: "mtn" | "airtel" | "lyca" | "liquid" | "safaricom" | "starlink"
+  identity:
+    | "mtn"
+    | "airtel"
+    | "lyca"
+    | "liquid"
+    | "safaricom"
+    | "starlink"
+    | "independent"
   description: string
   city: string
   district: string
