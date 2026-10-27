@@ -1,4 +1,5 @@
-import type { ComponentType } from "react"
+import { lazy, type ComponentType } from "react"
+import StaffLogin from "@/features/staff/pages/StaffLogin"
 import type { View } from "@/types/View"
 import type {
   Actor,
@@ -13,10 +14,12 @@ export type WorkspaceProps = {
   feedback: (message: string, error?: boolean) => void
 }
 
-export const staffWorkspace: ComponentType<WorkspaceProps> | null = null
+export const staffWorkspace: ComponentType<WorkspaceProps> | null = lazy(
+  () => import("@/features/staff/pages/StaffWorkspace"),
+)
 
 export type StaffAccessProps = {
   go: (view: View) => void
   onContinue: () => void
 }
-export const staffAccess: ComponentType<StaffAccessProps> | null = null
+export const staffAccess: ComponentType<StaffAccessProps> | null = StaffLogin
