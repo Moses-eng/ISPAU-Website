@@ -10,7 +10,7 @@ export const stages = [
   "Declined",
 ] as const
 export type Stage = (typeof stages)[number]
-export type StaffRole = "membership" | "decision" | "accounts" | "secretariat"
+export type StaffRole = "super_admin" | "membership_admin" | "finance_admin"
 export type Actor = {
   id: string
   name: string
@@ -35,7 +35,13 @@ export type PublicProfile = {
   contact: string
   logo?: string
 }
-export type Activity = { id: string; date: string; actor: string; text: string }
+export type Activity = {
+  id: string
+  date: string
+  actor: string
+  text: string
+  scope?: "billing" | "membership"
+}
 export type Clarification = {
   id: string
   items: string[]
@@ -79,12 +85,6 @@ export type Application = {
   profile: PublicProfile
   proposedProfile?: PublicProfile
   standing: "Current" | "Review required"
-  tradeCreditAccess?: {
-    enabled: boolean
-    actor: string
-    date: string
-    reason: string
-  }
   portalAccess: boolean
   memberId?: string
   periodStart: string
@@ -103,6 +103,7 @@ export type Invoice = {
   paymentDate?: string
   receipt?: FileRecord
   confirmedBy?: string
+  confirmedAt?: string
   taxInvoice?: FileRecord
 }
 export type Notice = {
@@ -121,7 +122,6 @@ export type WorkspaceState = {
   nextMemberNumber: number
 }
 export type Command =
-  | { type: "trade-access"; id: string; enabled: boolean; reason: string }
   | { type: "start-review"; id: string }
   | { type: "verify"; id: string; results: Verification[] }
   | { type: "clarify"; id: string; items: string[] }

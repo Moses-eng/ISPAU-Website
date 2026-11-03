@@ -1,13 +1,15 @@
+import AccountManagement from "../components/AccountManagement"
+import { staffBasePath } from "@/config/deployment"
 import type {
   Actor,
   WorkspaceState,
 } from "@/features/membership/types/workspace"
-import { demoStaff, roleLabels, tierOptions } from "@/config/workspace"
+import { tierOptions } from "@/config/workspace"
 import { buildRestrictedCsv } from "@/services/workspaceExport"
 import PageHeader from "@/components/dashboard/PageHeader"
-import DataTable from "@/components/dashboard/DataTable"
 import Timeline from "@/components/dashboard/Timeline"
 import Button from "@/components/ui/Button"
+import { staffAuditService } from "@/services/staffAuditService"
 export default function Administration({
   state,
   actor,
@@ -28,6 +30,13 @@ export default function Administration({
       link.href = url
       link.download = "ispau-application-register.csv"
       link.click()
+      staffAuditService.recordDownload(
+        actor,
+        "administration",
+        "Restricted application register (CSV)",
+        link.download,
+        state.applications.filter((a) => a.stage !== "Draft").length,
+      )
       setTimeout(() => URL.revokeObjectURL(url), 1000)
       feedback(
         "Register exported. Private evidence and representative details are excluded.",
@@ -47,25 +56,7 @@ export default function Administration({
           </Button>
         }
       />
-      <section className="workspace-panel">
-        <h2>ISPAU administrator access</h2>
-        <DataTable
-          rows={demoStaff}
-          label="Staff role assignments"
-          rowKey={(u) => u.id}
-          columns={[
-            { label: "User", cell: (u) => u.name, sort: (u) => u.name },
-            {
-              label: "Authorised roles",
-              cell: (u) => u.roles.map((r) => roleLabels[r]).join(" · "),
-            },
-          ]}
-        />
-        <p>
-          The ISPAU administrator manages association operations and authorised
-          access.
-        </p>
-      </section>
+      <AccountManagement actor={actor} />
       <div className="workspace-review-grid">
         <section className="workspace-panel">
           <h2>Membership configuration</h2>
@@ -91,14 +82,19 @@ export default function Administration({
             Use the current ISPAU-approved notices, membership rules and privacy
             arrangements.
           </p>
-          <p>
-            Trade Credit is available only within authorised ISP and ISPAU
-            workspaces. Public pages never display customer payment records.
-          </p>
+          <p>Trade Credit is disabled for this membership release.</p>
         </section>
       </div>
       <section className="workspace-panel">
-        <h2>Audit log</h2>
+        <h2>Membership record history</h2>
+        <p>
+          For staff login/logout times, section visits and changes across both
+          teams, open the{" "}
+          <a className="underline" href={`${staffBasePath}#/staff-activity`}>
+            Staff activity log
+          </a>
+          .
+        </p>
         <Timeline
           items={state.applications
             .flatMap((a) =>

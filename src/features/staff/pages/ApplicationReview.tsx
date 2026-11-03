@@ -1,3 +1,4 @@
+import PdfDownload from "@/components/dashboard/PdfDownload"
 import type {
   Actor,
   Application,
@@ -24,6 +25,13 @@ export default function ApplicationReview({
   return (
     <>
       <PageHeader
+        action={
+          <PdfDownload
+            actor={actor}
+            request={{ kind: "application-summary", applicationId: a.id }}
+            label="Download application summary PDF"
+          />
+        }
         title={a.organisation}
         description={`${a.id} · Requested ${a.requestedTier} · Confirmed ${a.confirmedTier || "not yet decided"} · Reviewer: ${a.reviewer}`}
       />

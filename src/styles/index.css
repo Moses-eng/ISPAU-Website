@@ -4,12 +4,7 @@
 @import "./theme.css";
 @import "./base.css";
 @import "./components.css";
-@import "./layouts.css";
-@import "./pages.css";
-@import "./brand.css";
-@import "./public.css";
+@import "./logo.css";
+@import "./forms.css";
 @import "./auth.css";
-@import "./membership.css";
-@import "./directory.css";
-@import "./responsive.css";
 @import "./workspace.css";

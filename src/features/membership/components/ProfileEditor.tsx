@@ -34,11 +34,7 @@ export default function ProfileEditor({
       </div>
       <div className="workspace-review-grid">
         <section className="workspace-panel">
-          <h2>
-            {actor.kind === "staff"
-              ? "Edit directory entry"
-              : "Propose profile corrections"}
-          </h2>
+          <h2>Edit directory entry</h2>
           <StatusBadge status={published(a) ? "Published" : "Not published"} />
           {a.proposedProfile && (
             <p>
@@ -84,22 +80,12 @@ export default function ProfileEditor({
                   setPreview(next)
                   feedback("Logo selected for this session.")
                 }
-                membershipService.dispatch(
-                  actor,
-                  actor.kind === "staff"
-                    ? { type: "staff-profile", id: a.id, profile: next }
-                    : {
-                        type: "profile",
-                        id: a.id,
-                        profile: next,
-                        consent: data.get("consent") === "on",
-                      },
-                )
-                feedback(
-                  actor.kind === "staff"
-                    ? "Approved public entry updated."
-                    : "Proposed profile saved for staff review.",
-                )
+                membershipService.dispatch(actor, {
+                  type: "staff-profile",
+                  id: a.id,
+                  profile: next,
+                })
+                feedback("Approved public entry updated.")
               } catch (error) {
                 feedback((error as Error).message, true)
               }
@@ -122,42 +108,11 @@ export default function ProfileEditor({
                 10 MB maximum. Your logo remains private until approved.
               </small>
             </label>
-            {actor.kind === "organisation" && (
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  name="consent"
-                  defaultChecked={a.consent}
-                />
-                I permit publication of the eligible, approved profile. This is
-                optional.
-              </label>
-            )}
-            <Button type="submit">
-              {actor.kind === "staff"
-                ? "Save approved public fields"
-                : "Submit proposed changes"}
-            </Button>
+            <Button type="submit">Save approved public fields</Button>
           </form>
-          {actor.kind === "organisation" && a.consent && (
-            <Button
-              kind="ghost"
-              onClick={() => {
-                membershipService.dispatch(actor, {
-                  type: "withdraw",
-                  id: a.id,
-                })
-                feedback(
-                  "Publication permission withdrawn. The profile is no longer public.",
-                )
-              }}
-            >
-              Withdraw publication permission
-            </Button>
-          )}
         </section>
         <section className="workspace-panel">
-          <span className="eyebrow">Proposed profile preview</span>
+          <span className="eyebrow">Public profile preview</span>
           {getLocalUrl(preview.logo) && (
             <img
               src={getLocalUrl(preview.logo)}

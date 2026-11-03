@@ -18,55 +18,105 @@ export default function Overview({
   actor: Actor
   navigate: (route: string) => void
 }) {
+  const review = can(actor, "applications.review")
   const applications = visibleApplications(state, actor)
-  const summaries = [
-    {
-      label: "New submissions",
-      stage: "Submitted",
-      count: applications.filter((a) => a.stage === "Submitted").length,
-    },
-    {
-      label: "Clarification responses",
-      stage: "Under review",
-      count: applications.filter(
-        (a) =>
-          a.stage === "Under review" &&
-          a.clarifications.some((c) => c.response),
-      ).length,
-    },
-    {
-      label: "Awaiting decision",
-      stage: "Decision pending",
-      count: applications.filter((a) => a.stage === "Decision pending").length,
-    },
-    {
-      label: "Awaiting payment",
-      stage: "Approved awaiting payment",
-      count: applications.filter((a) => a.stage === "Approved awaiting payment")
-        .length,
-    },
-  ]
+  const summaries = !review
+    ? [
+        {
+          label: "Awaiting payment",
+          count: state.invoices.filter((i) => i.status === "Awaiting payment")
+            .length,
+        },
+        {
+          label: "Receipts to confirm",
+          count: state.invoices.filter((i) => i.status === "Receipt submitted")
+            .length,
+        },
+        {
+          label: "Confirmed payments",
+          count: state.invoices.filter((i) => i.status === "Confirmed").length,
+        },
+        {
+          label: "Tax invoices to attach",
+          count: state.invoices.filter(
+            (i) => i.status === "Confirmed" && !i.taxInvoice,
+          ).length,
+        },
+      ]
+    : [
+        {
+          label: "New submissions",
+          count: applications.filter((a) => a.stage === "Submitted").length,
+        },
+        {
+          label: "Clarification responses",
+          count: applications.filter(
+            (a) =>
+              a.stage === "Under review" &&
+              a.clarifications.some((c) => c.response),
+          ).length,
+        },
+        {
+          label: "Awaiting decision",
+          count: applications.filter((a) => a.stage === "Decision pending")
+            .length,
+        },
+        {
+          label: "Awaiting payment",
+          count: applications.filter(
+            (a) => a.stage === "Approved awaiting payment",
+          ).length,
+        },
+      ]
+  if (review && can(actor, "billing.manage"))
+    summaries.push(
+      {
+        label: "Receipts to confirm",
+        count: state.invoices.filter((i) => i.status === "Receipt submitted")
+          .length,
+      },
+      {
+        label: "Tax invoices to attach",
+        count: state.invoices.filter(
+          (i) => i.status === "Confirmed" && !i.taxInvoice,
+        ).length,
+      },
+    )
   const attention = applications
     .filter((a) =>
-      actor.roles.includes("accounts") && actor.roles.length === 1
+      !review
         ? state.invoices.some(
-            (i) => i.applicationId === a.id && i.status !== "Confirmed",
+            (i) =>
+              i.applicationId === a.id &&
+              (i.status !== "Confirmed" || !i.taxInvoice),
           )
         : true,
     )
-    .filter((a) =>
-      [
-        "Submitted",
-        "Under review",
-        "Decision pending",
-        "Approved awaiting payment",
-      ].includes(a.stage),
+    .filter(
+      (a) =>
+        [
+          "Submitted",
+          "Under review",
+          "Decision pending",
+          "Approved awaiting payment",
+        ].includes(a.stage) ||
+        (can(actor, "billing.manage") &&
+          a.stage === "Active" &&
+          state.invoices.some(
+            (i) =>
+              i.applicationId === a.id &&
+              (i.status !== "Confirmed" || !i.taxInvoice),
+          )),
     )
   return (
     <>
       <PageHeader
-        title="Membership Overview"
-        description="Review applications, resolve outstanding items and manage member activation."
+        title={review ? "Membership Overview" : "Finance Overview"}
+        description={
+          review
+            ? "Review applications, resolve outstanding items and manage member activation."
+            : "Manage invoices, confirm payments and prepare tax invoices."
+        }
       />
       <div className="workspace-summaries">
         {summaries.map((s) => (
@@ -85,14 +135,7 @@ export default function Overview({
           </div>
           <Button
             kind="ghost"
-            onClick={() =>
-              navigate(
-                can(actor, "accounts") &&
-                  !can(actor, "membership", "decision", "secretariat")
-                  ? "billing"
-                  : "applications",
-              )
-            }
+            onClick={() => navigate(!review ? "billing" : "applications")}
           >
             View workspace →
           </Button>
@@ -123,7 +166,14 @@ export default function Overview({
                 `${Math.max(0, Math.floor((Date.now() - Date.parse(a.submittedAt!)) / 86400000))} days`,
               sort: (a) => a.submittedAt!,
             },
-            { label: "Reviewer", cell: (a) => a.reviewer },
+            ...(review
+              ? [
+                  {
+                    label: "Reviewer",
+                    cell: (a: (typeof applications)[number]) => a.reviewer,
+                  },
+                ]
+              : []),
             {
               label: "Next action",
               cell: (a) => (
@@ -131,17 +181,23 @@ export default function Overview({
                   kind="ghost"
                   onClick={() =>
                     navigate(
-                      `${can(actor, "accounts") && !can(actor, "membership", "decision", "secretariat") ? "billing" : "applications"}/${a.id}`,
+                      `${!review || ["Approved awaiting payment", "Active"].includes(a.stage) ? "billing" : "applications"}/${a.id}`,
                     )
                   }
                 >
-                  {a.stage === "Decision pending"
-                    ? "Record decision"
-                    : a.stage === "Approved awaiting payment"
-                      ? "Review payment"
-                      : a.clarifications.some((c) => c.response)
-                        ? "Read clarification response"
-                        : "Review application"}
+                  {!review
+                    ? "Review invoice"
+                    : a.stage === "Decision pending"
+                      ? can(actor, "applications.decide")
+                        ? "Record decision"
+                        : "View decision progress"
+                      : ["Approved awaiting payment", "Active"].includes(
+                            a.stage,
+                          )
+                        ? "Review payment"
+                        : a.clarifications.some((c) => c.response)
+                          ? "Read clarification response"
+                          : "Review application"}
                 </Button>
               ),
             },
@@ -151,15 +207,28 @@ export default function Overview({
       <section className="workspace-panel">
         <h2>Recent activity</h2>
         <Timeline
-          items={applications
-            .flatMap((a) =>
-              a.activity.map((e) => ({
-                ...e,
-                text: `${a.organisation}: ${e.text}`,
-              })),
-            )
-            .sort((a, b) => b.date.localeCompare(a.date))
-            .slice(0, 6)}
+          items={
+            !review
+              ? state.invoices
+                  .filter((i) => i.confirmedAt)
+                  .map((i) => ({
+                    id: i.id,
+                    date: i.confirmedAt!,
+                    actor: i.confirmedBy || "Finance",
+                    text: `${i.id}: payment confirmed`,
+                  }))
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .slice(0, 6)
+              : applications
+                  .flatMap((a) =>
+                    a.activity.map((e) => ({
+                      ...e,
+                      text: `${a.organisation}: ${e.text}`,
+                    })),
+                  )
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .slice(0, 6)
+          }
         />
       </section>
     </>

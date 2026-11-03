@@ -45,8 +45,11 @@ const checks = [
 test("connected clarification, decision, payment, activation and publication workflow", () => {
   let state = createDemoState()
   const id = state.applications[0].id
-  state = applyCommand(state, staff("membership"), { type: "start-review", id })
-  state = applyCommand(state, staff("membership"), {
+  state = applyCommand(state, staff("membership_admin"), {
+    type: "start-review",
+    id,
+  })
+  state = applyCommand(state, staff("membership_admin"), {
     type: "clarify",
     id,
     items: ["Correct the licence holder", "Confirm representative authority"],
@@ -58,18 +61,18 @@ test("connected clarification, decision, payment, activation and publication wor
     id,
     response: "Both corrections are now explained for the reviewer.",
   })
-  state = applyCommand(state, staff("membership"), {
+  state = applyCommand(state, staff("membership_admin"), {
     type: "verify",
     id,
     results: checks,
   })
-  state = applyCommand(state, staff("membership"), {
+  state = applyCommand(state, staff("membership_admin"), {
     type: "send-decision",
     id,
   })
   assert.throws(
     () =>
-      applyCommand(state, staff("membership"), {
+      applyCommand(state, staff("membership_admin"), {
         type: "decide",
         id,
         outcome: "Approve",
@@ -80,7 +83,7 @@ test("connected clarification, decision, payment, activation and publication wor
       }),
     /permission/,
   )
-  state = applyCommand(state, staff("decision"), {
+  state = applyCommand(state, staff("super_admin"), {
     type: "decide",
     id,
     outcome: "Approve",
@@ -90,7 +93,8 @@ test("connected clarification, decision, payment, activation and publication wor
     currency: "UGX",
   })
   assert.throws(
-    () => applyCommand(state, staff("membership"), { type: "activate", id }),
+    () =>
+      applyCommand(state, staff("membership_admin"), { type: "activate", id }),
     /Accounts-confirmed/,
   )
   state = applyCommand(state, owner(), {
@@ -106,21 +110,24 @@ test("connected clarification, decision, payment, activation and publication wor
   )
   assert.throws(
     () =>
-      applyCommand(state, staff("secretariat"), {
+      applyCommand(state, staff("membership_admin"), {
         type: "confirm-payment",
         id,
       }),
     /permission/,
   )
-  state = applyCommand(state, staff("accounts"), {
+  state = applyCommand(state, staff("finance_admin"), {
     type: "confirm-payment",
     id,
   })
   assert.throws(
-    () => applyCommand(state, staff("accounts"), { type: "activate", id }),
+    () => applyCommand(state, staff("finance_admin"), { type: "activate", id }),
     /permission/,
   )
-  state = applyCommand(state, staff("membership"), { type: "activate", id })
+  state = applyCommand(state, staff("membership_admin"), {
+    type: "activate",
+    id,
+  })
   const memberId = state.applications[0].memberId
   assert.ok(memberId)
   assert.equal(state.applications[0].stage, "Active")
@@ -132,7 +139,7 @@ test("connected clarification, decision, payment, activation and publication wor
     consent: true,
   })
   assert.notEqual(state.applications[0].profile.name, "Proposed public name")
-  state = applyCommand(state, staff("membership"), {
+  state = applyCommand(state, staff("membership_admin"), {
     type: "approve-profile",
     id,
     eligible: true,
@@ -151,7 +158,7 @@ test("applicants cannot read or update another organisation; staff cannot read d
   const state = createDemoState()
   assert.equal(visibleApplications(state, owner()).length, 1)
   assert.ok(
-    !visibleApplications(state, staff("membership")).some(
+    !visibleApplications(state, staff("membership_admin")).some(
       (a) => a.stage === "Draft",
     ),
   )
@@ -167,7 +174,7 @@ test("applicants cannot read or update another organisation; staff cannot read d
   )
   assert.throws(
     () =>
-      applyCommand(state, staff("secretariat"), {
+      applyCommand(state, staff("super_admin"), {
         type: "start-review",
         id: state.applications[6].id,
       }),
@@ -177,16 +184,22 @@ test("applicants cannot read or update another organisation; staff cannot read d
 test("incomplete verification, missing decision reasons and invalid submissions are blocked atomically", () => {
   let state = createDemoState()
   const id = state.applications[0].id
-  state = applyCommand(state, staff("membership"), { type: "start-review", id })
+  state = applyCommand(state, staff("membership_admin"), {
+    type: "start-review",
+    id,
+  })
   assert.throws(
     () =>
-      applyCommand(state, staff("membership"), { type: "send-decision", id }),
+      applyCommand(state, staff("membership_admin"), {
+        type: "send-decision",
+        id,
+      }),
     /Complete verification/,
   )
   const pending = state.applications[2].id
   assert.throws(
     () =>
-      applyCommand(state, staff("decision"), {
+      applyCommand(state, staff("super_admin"), {
         type: "decide",
         id: pending,
         outcome: "Decline",
@@ -248,10 +261,10 @@ test("publication always requires all four conditions; membership remains separa
   )
 })
 
-test("multi-role staff can decide but do not inherit Accounts permissions", () => {
+test("Super Admin can decide but cannot skip payment evidence", () => {
   const state = createDemoState(),
     id = state.applications[2].id,
-    lead = staff("membership", "decision")
+    lead = staff("super_admin")
   const next = applyCommand(state, lead, {
     type: "decide",
     id,
@@ -264,11 +277,11 @@ test("multi-role staff can decide but do not inherit Accounts permissions", () =
   assert.equal(next.applications[2].stage, "Approved awaiting payment")
   assert.throws(
     () => applyCommand(next, lead, { type: "confirm-payment", id }),
-    /permission/,
+    /payment details/,
   )
   assert.throws(
     () =>
-      applyCommand(next, staff("decision"), {
+      applyCommand(next, staff("super_admin"), {
         type: "decide",
         id,
         outcome: "Approve",
@@ -283,15 +296,18 @@ test("multi-role staff can decide but do not inherit Accounts permissions", () =
 test("a clarification is consolidated and cannot leave unreachable open requests", () => {
   let state = createDemoState()
   const id = state.applications[0].id
-  state = applyCommand(state, staff("membership"), { type: "start-review", id })
-  state = applyCommand(state, staff("membership"), {
+  state = applyCommand(state, staff("membership_admin"), {
+    type: "start-review",
+    id,
+  })
+  state = applyCommand(state, staff("membership_admin"), {
     type: "clarify",
     id,
     items: ["First correction", "Second correction"],
   })
   assert.throws(
     () =>
-      applyCommand(state, staff("membership"), {
+      applyCommand(state, staff("membership_admin"), {
         type: "clarify",
         id,
         items: ["Another request"],
@@ -337,15 +353,15 @@ test("private uploads reject unsupported/oversized files and retain only metadat
   assert.ok(getLocalFile(record.id))
   assert.equal(JSON.stringify(record).includes("PRIVATE-FILE-BODY"), false)
 })
-test("exports are role restricted and Trade Credit demo is centrally enabled", () => {
+test("exports are role restricted and Trade Credit is deferred", () => {
   const state = createDemoState()
-  assert.equal(workspaceFlags.tradeCreditEnabled, true)
+  assert.equal(workspaceFlags.tradeCreditEnabled, false)
   assert.equal(workspaceFlags.publicTradeCreditEnabled, false)
   assert.throws(
-    () => buildRestrictedCsv(state, staff("accounts")),
+    () => buildRestrictedCsv(state, staff("finance_admin")),
     /restricted/,
   )
-  const csv = buildRestrictedCsv(state, staff("secretariat"))
+  const csv = buildRestrictedCsv(state, staff("super_admin"))
   assert.ok(csv.includes("Reference"))
   assert.equal(csv.includes(state.applications[6].id), false)
   assert.equal(csv.includes("representative@"), false)
@@ -406,7 +422,7 @@ test("a complete scoped draft submits with optional consent off and public field
   assert.equal(published(submitted), false)
   assert.equal(submitted.consent, false)
   assert.ok(
-    visibleApplications(next, staff("membership")).some(
+    visibleApplications(next, staff("membership_admin")).some(
       (a) => a.id === draft.id,
     ),
   )

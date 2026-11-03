@@ -1,4 +1,4 @@
-name: Frontend checks
+name: Admin frontend checks
 
 on:
   push:

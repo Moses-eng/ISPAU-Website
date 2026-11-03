@@ -89,9 +89,7 @@ export default function WorkflowActions({
           id: a.id,
           file: acceptFile(file, "taxInvoice"),
         }
-      } else if (intent === "Respond to request")
-        command = { type: "respond", id: a.id, response: text("response") }
-      else if (intent === "Assign reviewer")
+      } else if (intent === "Assign reviewer")
         command = { type: "reviewer", id: a.id, reviewer: text("reviewer") }
       else
         command = {
@@ -110,29 +108,26 @@ export default function WorkflowActions({
     }
   }
   const buttons: string[] = []
-  if (can(actor, "membership")) {
+  if (can(actor, "applications.review")) {
     if (a.stage === "Submitted") buttons.push("Start review")
     if (["Under review", "Clarification needed"].includes(a.stage))
       buttons.push("Record verification", "Request clarification")
     if (a.stage === "Under review") buttons.push("Send for decision")
-    if (a.stage === "Approved awaiting payment")
+    if (
+      can(actor, "membership.activate") &&
+      a.stage === "Approved awaiting payment"
+    )
       buttons.push("Activate membership")
     buttons.push("Assign reviewer")
   }
-  if (can(actor, "decision") && a.stage === "Decision pending")
+  if (can(actor, "applications.decide") && a.stage === "Decision pending")
     buttons.push("Approve", "Defer", "Decline")
-  if (
-    invoice &&
-    invoice.status !== "Confirmed" &&
-    (can(actor, "accounts") || actor.kind === "organisation")
-  )
+  if (invoice && invoice.status !== "Confirmed" && can(actor, "billing.manage"))
     buttons.push("Record payment details")
-  if (invoice?.status === "Receipt submitted" && can(actor, "accounts"))
+  if (invoice?.status === "Receipt submitted" && can(actor, "payments.confirm"))
     buttons.push("Confirm payment received")
-  if (invoice?.status === "Confirmed" && can(actor, "secretariat"))
+  if (invoice?.status === "Confirmed" && can(actor, "billing.manage"))
     buttons.push("Upload tax invoice")
-  if (actor.kind === "organisation" && a.stage === "Clarification needed")
-    buttons.push("Respond to request")
   return (
     <>
       <div className="workspace-actions">
@@ -141,7 +136,9 @@ export default function WorkflowActions({
             key={label}
             kind={label === "Decline" ? "danger" : "secondary"}
             disabled={
-              label === "Activate membership" && invoice?.status !== "Confirmed"
+              label === "Activate membership" &&
+              (invoice?.status !== "Confirmed" ||
+                !a.decisions.some((d) => d.outcome === "Approve"))
             }
             title={
               label === "Activate membership" && invoice?.status !== "Confirmed"
@@ -158,6 +155,15 @@ export default function WorkflowActions({
           </Button>
         ))}
       </div>
+      {can(actor, "membership.activate") &&
+        a.stage === "Approved awaiting payment" &&
+        (invoice?.status !== "Confirmed" ||
+          !a.decisions.some((d) => d.outcome === "Approve")) && (
+          <p className="workspace-help">
+            An approved admission decision and confirmed payment are required
+            before activation.
+          </p>
+        )}
       {intent && (
         <Dialog title={intent} onClose={() => setIntent("")}>
           <p className="workspace-help">
@@ -298,25 +304,6 @@ export default function WorkflowActions({
                   the page.
                 </small>
               </label>
-            )}
-            {intent === "Respond to request" && (
-              <>
-                {a.clarifications
-                  .filter((c) => !c.response)
-                  .map((c) => (
-                    <ul key={c.id}>
-                      {c.items.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ))}
-                <FormField
-                  name="response"
-                  label="Consolidated response to all requested corrections"
-                  required
-                  multiline
-                />
-              </>
             )}
             {intent === "Assign reviewer" && (
               <FormField

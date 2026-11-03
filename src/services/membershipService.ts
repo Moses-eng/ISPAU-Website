@@ -1,7 +1,12 @@
+import { workspaceForActor } from "@/config/permissions"
+import { staffAuditService } from "./staffAuditService"
+import {
+  recordDocumentDownload,
+  type RecordDocumentKind,
+} from "@/features/membership/services/reports"
 import { createDemoState, refreshExampleRecords } from "@/mocks/membership"
 import {
   applyCommand,
-  published,
   visibleApplications,
 } from "@/features/membership/services/workflow"
 import type {
@@ -33,7 +38,33 @@ window.addEventListener("storage", (event) => {
     notify()
   }
 })
+let cachedState: WorkspaceState | undefined
+let cachedActor: Actor | null | undefined
+let cachedView: WorkspaceState
 export const membershipService = {
+  recordDownload: (
+    actor: Actor,
+    id: string,
+    kind: RecordDocumentKind,
+    filename: string,
+  ) => {
+    const next = recordDocumentDownload(state, actor, id, kind, filename)
+    try {
+      localStorage.setItem(key, JSON.stringify(next))
+    } catch {
+      /* Retain local activity in memory. */
+    }
+    state = next
+    notify()
+  },
+  workspaceSnapshot: (actor: Actor | null) => {
+    if (cachedState !== state || cachedActor !== actor) {
+      cachedView = workspaceForActor(state, actor)
+      cachedState = state
+      cachedActor = actor
+    }
+    return cachedView
+  },
   getSnapshot: () => state,
   subscribe: (listener: () => void) => {
     listeners.add(listener)
@@ -42,17 +73,6 @@ export const membershipService = {
     }
   },
   applications: (actor: Actor) => visibleApplications(state, actor),
-  publicProfiles: () =>
-    state.applications.filter(published).map((a) => ({
-      id: a.memberId!,
-      name: a.profile.name,
-      description: a.profile.description,
-      services: a.profile.services,
-      coverage: a.profile.coverage,
-      website: a.profile.website,
-      contact: a.profile.contact,
-      logo: a.profile.logo,
-    })),
   dispatch: (actor: Actor, command: Command) => {
     const next = applyCommand(state, actor, command)
     try {
@@ -60,6 +80,7 @@ export const membershipService = {
     } catch {
       /* Keep the demonstration usable in memory if local storage is unavailable. */
     }
+    staffAuditService.recordChange(state, next, actor, command)
     state = next
     notify()
   },

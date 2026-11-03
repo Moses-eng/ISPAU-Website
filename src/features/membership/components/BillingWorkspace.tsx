@@ -1,5 +1,7 @@
+import PdfDownload from "@/components/dashboard/PdfDownload"
+import { can } from "@/config/permissions"
 import { useState } from "react"
-import type { Actor, WorkspaceState, Invoice } from "../types/workspace"
+import type { Actor, WorkspaceState } from "../types/workspace"
 import PageHeader from "@/components/dashboard/PageHeader"
 import DataTable from "@/components/dashboard/DataTable"
 import StatusBadge from "@/components/dashboard/StatusBadge"
@@ -18,36 +20,45 @@ export default function BillingWorkspace({
   feedback: (message: string, error?: boolean) => void
   selectedId?: string
 }) {
-  const invoices = state.invoices.filter(
-    (i) =>
-      actor.kind === "staff" ||
-      state.applications.find((a) => a.id === i.applicationId)
-        ?.organisationId === actor.organisationId,
-  )
+  const invoices = state.invoices
   const [selected, setSelected] = useState(selectedId || "")
   const invoice = invoices.find(
     (i) => i.applicationId === selected || i.id === selected,
   )
   const application =
     invoice && state.applications.find((a) => a.id === invoice.applicationId)
-  const download = (item: Invoice) => {
-    const a = state.applications.find((a) => a.id === item.applicationId)!
-    const text = `NON-TAX PROFORMA — PREVIEW\n${item.id}\nOrganisation: ${a.organisation}\nApproved tier: ${a.confirmedTier}\nAmount: ${item.currency} ${item.amount.toLocaleString()}\nPeriod: ${item.periodStart} to ${item.periodEnd}\nPreview copy. Contact ISPAU for payment instructions.`
-    const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }))
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `${item.id}-non-tax-proforma.txt`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  }
   return (
     <>
       <PageHeader
-        title={
-          actor.kind === "staff" ? "Billing & activation" : "Your invoices"
+        action={
+          can(actor, "billing.manage") ? (
+            <PdfDownload
+              actor={actor}
+              request={{ kind: "report", sectionId: "finance" }}
+              label="Download billing report PDF"
+            />
+          ) : undefined
         }
+        title="Billing & activation"
         description="Application approval and payment confirmation are separate. There is no online payment checkout."
       />
+      {!can(actor, "billing.manage") && (
+        <p className="workspace-note">
+          Payment confirmation is read-only. Finance manages invoices and
+          confirms receipt.
+        </p>
+      )}
+      {can(actor, "billing.manage") &&
+        state.applications
+          .filter((a) => selectedId === a.id)
+          .map((a) => (
+            <PdfDownload
+              key={a.id}
+              actor={actor}
+              request={{ kind: "billing-statement", applicationId: a.id }}
+              label="Download invoice statement PDF"
+            />
+          ))}
       <div className="workspace-note">
         Review the invoice amount, currency and membership period. Contact ISPAU
         for payment instructions.
@@ -135,15 +146,48 @@ export default function BillingWorkspace({
               <dd>{invoice.confirmedBy || "Not confirmed"}</dd>
             </div>
           </dl>
-          <Button kind="secondary" onClick={() => download(invoice)}>
-            Download non-tax proforma
-          </Button>
-          {invoice.receipt && <EvidencePreview file={invoice.receipt} />}
+          {(actor.kind === "organisation" || can(actor, "billing.manage")) && (
+            <PdfDownload
+              actor={actor}
+              request={{
+                kind: "proforma",
+                applicationId: application.id,
+                invoiceId: invoice.id,
+              }}
+              label="Download proforma PDF"
+            />
+          )}
+          {invoice.receipt &&
+            (actor.kind === "organisation" || can(actor, "billing.manage")) && (
+              <>
+                <EvidencePreview file={invoice.receipt} />
+                <PdfDownload
+                  actor={actor}
+                  request={{
+                    kind: "receipt",
+                    applicationId: application.id,
+                    invoiceId: invoice.id,
+                  }}
+                  label="Download receipt (original)"
+                />
+              </>
+            )}
           <h3 className="mt-6">Tax invoice</h3>
           {invoice.taxInvoice ? (
-            <EvidencePreview file={invoice.taxInvoice} />
+            <>
+              <EvidencePreview file={invoice.taxInvoice} />
+              <PdfDownload
+                actor={actor}
+                request={{
+                  kind: "tax-invoice",
+                  applicationId: application.id,
+                  invoiceId: invoice.id,
+                }}
+                label="Download tax invoice (original)"
+              />
+            </>
           ) : (
-            <p>Not yet uploaded by the authorised Secretariat role.</p>
+            <p>Not yet uploaded by Finance.</p>
           )}
           <WorkflowActions
             application={application}

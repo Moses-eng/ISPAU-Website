@@ -1,3 +1,8 @@
+import {
+  can,
+  workspaceForActor,
+  type Permission,
+} from "../../../config/permissions.ts"
 import { validateApplication } from "./validation.ts"
 import type {
   Actor,
@@ -14,11 +19,7 @@ export function published(application: Application) {
   )
 }
 export function visibleApplications(state: WorkspaceState, actor: Actor) {
-  return actor.kind === "staff"
-    ? state.applications.filter((a) => a.stage !== "Draft")
-    : state.applications.filter(
-        (a) => a.organisationId === actor.organisationId && a.portalAccess,
-      )
+  return workspaceForActor(state, actor).applications
 }
 export function applyCommand(
   previous: WorkspaceState,
@@ -29,12 +30,8 @@ export function applyCommand(
   const state = structuredClone(previous)
   const a = state.applications.find((item) => item.id === command.id)
   if (!a) throw Error("Application not found.")
-  const staff = (...roles: string[]) => {
-    if (
-      actor.kind !== "staff" ||
-      !actor.roles.some((role) => roles.includes(role)) ||
-      a.stage === "Draft"
-    )
+  const staff = (permission: Permission) => {
+    if (!can(actor, permission) || a.stage === "Draft")
       throw Error("You do not have permission for this action.")
   }
   const owner = () => {
@@ -66,37 +63,21 @@ export function applyCommand(
     })
   let text: string = command.type
   switch (command.type) {
-    case "trade-access":
-      staff("secretariat")
-      expect("Active")
-      reason(command.reason)
-      if (command.enabled && (!a.portalAccess || a.standing !== "Current"))
-        throw Error(
-          "Resolve membership standing and portal access before provisioning Trade Credit.",
-        )
-      a.tradeCreditAccess = {
-        enabled: command.enabled,
-        actor: actor.name,
-        date,
-        reason: command.reason,
-      }
-      text = `Trade Credit account ${command.enabled ? "provisioned" : "restricted"} by ISPAU: ${command.reason}`
-      break
     case "start-review":
-      staff("membership")
+      staff("applications.review")
       expect("Submitted")
       a.stage = "Under review"
       a.reviewer = actor.name
       text = "Review started"
       break
     case "reviewer":
-      staff("membership", "secretariat")
+      staff("members.manage")
       reason(command.reviewer)
       a.reviewer = command.reviewer
       text = "Reviewer assignment updated"
       break
     case "verify":
-      staff("membership")
+      staff("applications.review")
       expect("Under review", "Clarification needed")
       if (
         !command.results.length ||
@@ -117,12 +98,11 @@ export function applyCommand(
       text = "Verification results recorded"
       break
     case "clarify":
-      staff("membership")
+      staff("applications.review")
       if (a.clarifications.some((item) => !item.response))
         throw Error(
           "An open clarification request already exists. Await the consolidated response before issuing another.",
         )
-      staff("membership")
       expect("Under review", "Clarification needed")
       if (!command.items.length || command.items.some((item) => !item.trim()))
         throw Error("Add at least one correction.")
@@ -150,7 +130,7 @@ export function applyCommand(
       text = "Clarification response received"
       break
     case "send-decision":
-      staff("membership")
+      staff("applications.review")
       expect("Under review")
       if (
         ![
@@ -168,7 +148,7 @@ export function applyCommand(
       text = "Application sent for decision"
       break
     case "decide":
-      staff("decision")
+      staff("applications.decide")
       expect("Decision pending")
       reason(command.reason)
       if (command.outcome === "Approve") {
@@ -203,7 +183,7 @@ export function applyCommand(
       text = `Decision recorded: ${command.outcome}`
       break
     case "payment":
-      if (actor.kind === "staff") staff("accounts")
+      if (actor.kind === "staff") staff("billing.manage")
       else owner()
       if (!invoice || invoice.status === "Confirmed")
         throw Error("No unpaid invoice is available.")
@@ -217,7 +197,7 @@ export function applyCommand(
       text = "Payment details recorded; Accounts confirmation required"
       break
     case "confirm-payment":
-      staff("accounts")
+      staff("payments.confirm")
       if (
         !invoice ||
         !invoice.paymentReference ||
@@ -227,10 +207,11 @@ export function applyCommand(
         throw Error("Record payment details before confirming receipt.")
       invoice.status = "Confirmed"
       invoice.confirmedBy = actor.name
+      invoice.confirmedAt = date
       text = "Accounts confirmed payment received"
       break
     case "tax-invoice":
-      staff("secretariat")
+      staff("billing.manage")
       if (!invoice || invoice.status !== "Confirmed")
         throw Error(
           "Payment must be confirmed before attaching the tax invoice.",
@@ -239,7 +220,7 @@ export function applyCommand(
       text = "Tax invoice attached"
       break
     case "activate":
-      staff("membership")
+      staff("membership.activate")
       expect("Approved awaiting payment")
       if (
         !invoice ||
@@ -267,7 +248,7 @@ export function applyCommand(
       text = "Proposed public profile saved for staff review"
       break
     case "staff-profile":
-      staff("membership", "secretariat")
+      staff("directory.manage")
       expect("Active")
       if (!command.profile.name.trim() || !command.profile.description.trim())
         throw Error("Public name and description are required.")
@@ -277,7 +258,7 @@ export function applyCommand(
       text = "Approved public fields corrected by staff"
       break
     case "approve-profile":
-      staff("membership", "secretariat")
+      staff("directory.manage")
       expect("Active")
       if (a.proposedProfile) a.profile = a.proposedProfile
       delete a.proposedProfile
@@ -291,14 +272,16 @@ export function applyCommand(
       text = "Publication permission withdrawn"
       break
     case "details":
-      owner()
+      if (actor.kind === "staff") staff("members.manage")
+      else owner()
       expect("Active")
       a.values = { ...a.values, ...command.values }
       a.organisation = String(a.values.legalName || a.organisation)
       text = "Organisation details updated"
       break
     case "renew":
-      owner()
+      if (actor.kind === "staff") staff("renewals.manage")
+      else owner()
       expect("Active")
       a.renewalConfirmedAt = date
       text = "Renewal details confirmed; no new period or payment created"
@@ -356,7 +339,7 @@ export function applyCommand(
       text = "Application recorded; acknowledgement prepared"
       break
     case "send-notice":
-      staff("membership", "secretariat")
+      staff("renewals.manage")
       reason(command.body)
       notice(command.template, command.body)
       text = `${command.template} prepared; delivery pending`
@@ -368,6 +351,9 @@ export function applyCommand(
     date,
     actor: actor.name,
     text,
+    scope: ["payment", "confirm-payment", "tax-invoice"].includes(command.type)
+      ? "billing"
+      : "membership",
   })
   return state
 }

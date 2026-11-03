@@ -134,16 +134,6 @@ export function createDemoState(): WorkspaceState {
         contact: `public@company${i + 1}.example`,
       },
       standing: "Current",
-      tradeCreditAccess:
-        stage === "Active"
-          ? {
-              enabled: true,
-              actor: "ISPAU Admin",
-              date,
-              reason:
-                "Sample membership account provisioned for service access.",
-            }
-          : undefined,
       portalAccess: true,
       memberId: stage === "Active" ? `DEMO-ISPAU-00${i + 1}` : undefined,
       periodStart: "2026-01-01",
@@ -257,12 +247,6 @@ export function refreshExampleRecords(state: WorkspaceState): WorkspaceState {
           actor: clean(item.actor),
           text: clean(item.text),
         })),
-        tradeCreditAccess: application.tradeCreditAccess
-          ? {
-              ...application.tradeCreditAccess,
-              reason: clean(application.tradeCreditAccess.reason),
-            }
-          : undefined,
       }
     }),
   }

@@ -1,4 +1,7 @@
-import MemberAccess from "./MemberAccess"
+import PdfDownload from "@/components/dashboard/PdfDownload"
+import { can } from "@/config/permissions"
+import OrganisationDetailsEditor from "@/features/membership/components/OrganisationDetailsEditor"
+import { membershipService } from "@/services/membershipService"
 import { useState } from "react"
 import type {
   Actor,
@@ -33,6 +36,21 @@ export default function Members({
   return (
     <>
       <PageHeader
+        action={
+          can(actor, "members.manage") ? (
+            <PdfDownload
+              actor={actor}
+              request={
+                a
+                  ? { kind: "membership-summary", applicationId: a.id }
+                  : { kind: "member-register", query }
+              }
+              label={
+                a ? "Download member summary PDF" : "Download register PDF"
+              }
+            />
+          ) : undefined
+        }
         title="Member register"
         description="Membership standing, portal access and directory publication are tracked separately."
       />
@@ -45,14 +63,21 @@ export default function Members({
             {a.organisation} · {a.memberId}
           </h2>
           <div className="workspace-panel">
-            <h3>Organisation & representatives</h3>
+            <h3>
+              {can(actor, "members.manage")
+                ? "Organisation & representatives"
+                : "Billing details"}
+            </h3>
             <dl className="workspace-record">
-              {[
-                "registeredAddress",
-                "businessEmail",
-                "representativeName",
-                "representativeEmail",
-              ].map((key) => (
+              {(can(actor, "members.manage")
+                ? [
+                    "registeredAddress",
+                    "businessEmail",
+                    "representativeName",
+                    "representativeEmail",
+                  ]
+                : ["registeredAddress", "billingEmail"]
+              ).map((key) => (
                 <div key={key}>
                   <dt>{key.replace(/([A-Z])/g, " $1")}</dt>
                   <dd>{String(a.values[key] || "Not provided")}</dd>
@@ -72,8 +97,33 @@ export default function Members({
                 </p>
               ))}
           </div>
-          <MemberAccess application={a} actor={actor} feedback={feedback} />
-          <ProfileEditor application={a} actor={actor} feedback={feedback} />
+          {can(actor, "members.manage") && (
+            <OrganisationDetailsEditor
+              application={a}
+              actor={actor}
+              feedback={feedback}
+              section="company"
+              compact
+            />
+          )}
+          {can(actor, "renewals.manage") && (
+            <Button
+              kind="secondary"
+              onClick={() => {
+                try {
+                  membershipService.dispatch(actor, { type: "renew", id: a.id })
+                  feedback("Renewal details confirmed.")
+                } catch (error) {
+                  feedback((error as Error).message, true)
+                }
+              }}
+            >
+              Confirm renewal details
+            </Button>
+          )}
+          {can(actor, "directory.manage") && (
+            <ProfileEditor application={a} actor={actor} feedback={feedback} />
+          )}
           <section className="workspace-panel">
             <h2>Relevant audit history</h2>
             <Timeline items={a.activity} />
@@ -115,21 +165,18 @@ export default function Members({
                 cell: (a) => `${a.periodStart} — ${a.periodEnd}`,
               },
               { label: "Standing", cell: (a) => a.standing },
-              {
-                label: "Trade Credit access",
-                cell: (a) =>
-                  a.tradeCreditAccess?.enabled
-                    ? "Provisioned"
-                    : "Setup required",
-              },
-              {
-                label: "Directory visibility",
-                cell: (a) => (
-                  <StatusBadge
-                    status={published(a) ? "Published" : "Not published"}
-                  />
-                ),
-              },
+              ...(can(actor, "directory.manage")
+                ? [
+                    {
+                      label: "Directory visibility",
+                      cell: (a: WorkspaceState["applications"][number]) => (
+                        <StatusBadge
+                          status={published(a) ? "Published" : "Not published"}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
               {
                 label: "Actions",
                 cell: (a) => (

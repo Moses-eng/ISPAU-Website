@@ -1,3 +1,4 @@
+import { canAccessSection } from "@/config/permissions"
 import type {
   Actor,
   WorkspaceState,
@@ -5,6 +6,8 @@ import type {
 import { staffSections, staffGroup } from "@/config/workspace"
 import SectionNavigation from "@/components/dashboard/SectionNavigation"
 import StaffWorkspaceContent from "./StaffWorkspaceContent"
+import { useEffect } from "react"
+import { staffAuditService } from "@/services/staffAuditService"
 export default function StaffWorkspace(props: {
   state: WorkspaceState
   actor: Actor
@@ -18,14 +21,19 @@ export default function StaffWorkspace(props: {
     (s) =>
       staffGroup(s.id) === group &&
       props.actor.kind === "staff" &&
-      s.roles.some((r) => props.actor.roles.includes(r)),
+      canAccessSection(props.actor, s.id),
   )
   const actual =
     section === "membership" ||
+    section === "finance" ||
     (section === "administration" &&
       sections.length > 0 &&
       !sections.some((s) => s.id === section))
-      ? sections[0]?.id || "applications"
+      ? (
+          sections.find((s) => s.id === "applications") ||
+          sections.find((s) => s.id === "billing") ||
+          sections[0]
+        )?.id || "applications"
       : section
   const items = sections.map((s) => ({
     id: s.id,
@@ -36,6 +44,13 @@ export default function StaffWorkspace(props: {
           ? "Settings & audit"
           : s.label,
   }))
+  const resolvedRoute =
+    section === "membership" || section === "finance" || actual !== section
+      ? actual
+      : props.route
+  useEffect(() => {
+    staffAuditService.visit(props.actor, resolvedRoute)
+  }, [props.actor, resolvedRoute])
   return (
     <>
       {items.length > 1 && (
@@ -46,12 +61,7 @@ export default function StaffWorkspace(props: {
           onSelect={props.navigate}
         />
       )}
-      <StaffWorkspaceContent
-        {...props}
-        route={
-          section === "membership" || actual !== section ? actual : props.route
-        }
-      />
+      <StaffWorkspaceContent {...props} route={resolvedRoute} />
     </>
   )
 }

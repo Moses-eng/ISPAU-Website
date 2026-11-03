@@ -17,7 +17,7 @@ export default function MenuToggle({
     <button
       ref={buttonRef}
       type="button"
-      className="public-menu-toggle relative h-11 w-11 shrink-0 rounded-lg border border-brand/20 bg-white text-brand transition-colors hover:bg-brand-tint"
+      className="navigation-toggle relative h-11 w-11 shrink-0 rounded-lg border border-brand/20 bg-white text-brand transition-colors hover:bg-brand-tint"
       aria-label={open ? "Close navigation" : "Open navigation"}
       aria-expanded={open}
       aria-controls={controls}

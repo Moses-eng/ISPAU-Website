@@ -1,0 +1,17 @@
+.logo {
+  @apply flex items-center;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  min-height: 0;
+}
+.logo img {
+  display: block;
+  width: auto;
+  height: 46px;
+  object-fit: contain;
+}
+.logo-light img {
+  filter: grayscale(1) brightness(0) invert(1);
+}

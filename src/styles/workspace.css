@@ -1,4 +1,4 @@
-/* Membership workspace styles build on the public theme and shared primitives. */
+/* Administrator workspace layouts and operational components. */
 .workspace {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
@@ -656,7 +656,7 @@
   .workspace-menu {
     display: block;
   }
-  .workspace-menu .public-menu-toggle {
+  .workspace-menu .navigation-toggle {
     display: block;
   }
   .workspace-topbar {
