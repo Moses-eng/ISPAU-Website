@@ -14,11 +14,3 @@ export const TRADE_CREDIT_ROUTES = new Set([
   "dispute",
   "reviewer",
 ])
-
-export const TRADE_CREDIT_STATUSES = [
-  "Under verification",
-  "Verified overdue",
-  "Disputed",
-  "Repayment arrangement",
-  "Settled",
-] as const

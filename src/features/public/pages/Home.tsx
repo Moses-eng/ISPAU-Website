@@ -131,12 +131,10 @@ export default function Home({ go }: { go: (v: View) => void }) {
           text="From industry representation and technical knowledge to infrastructure collaboration, ISPAU helps members work together on the issues shaping Uganda’s digital future."
         />
         <div className="mandate-list">
-          {mandates.map(([icon, title, text]) => (
+          {mandates.map(([, title, text], index) => (
             <article className="mandate-card" key={title}>
               <span className="mandate-number">
-                {String(
-                  mandates.findIndex((item) => item[1] === title) + 1,
-                ).padStart(2, "0")}
+                {String(index + 1).padStart(2, "0")}
               </span>
               <h3>{title}</h3>
               <p>{text}</p>

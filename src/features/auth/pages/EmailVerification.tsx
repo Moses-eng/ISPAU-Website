@@ -18,17 +18,11 @@ export default function EmailVerification({
         <Logo light />
         <span>Applicant account</span>
         <h1>Verify your work email to begin.</h1>
-        <p>
-          Your application progress is preserved through account verification.
-        </p>
       </div>
       <main className="auth-form">
         <span className="eyebrow">Email verification</span>
         <h2>Check your email</h2>
-        <p>
-          A verification link preview was prepared for
-          applicant@example-network.test.
-        </p>
+        <p>Verification email: applicant@example-network.test</p>
         {sent && (
           <div className="notice success">
             <Icon name="check" />

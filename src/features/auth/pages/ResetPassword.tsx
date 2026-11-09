@@ -18,7 +18,6 @@ export default function ResetPassword({ go }: { go: (v: View) => void }) {
         {complete ? (
           <>
             <h2>Password updated</h2>
-            <p>Use the new password to sign in.</p>
             <Button onClick={() => go("login")}>Return to sign in</Button>
           </>
         ) : (

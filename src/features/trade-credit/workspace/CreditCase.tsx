@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button"
 import Dialog from "@/components/dashboard/Dialog"
 import FormField from "@/components/dashboard/FormField"
 import Timeline from "@/components/dashboard/Timeline"
-import EvidencePreview from "@/components/dashboard/EvidencePreview"
+import { downloadEvidence } from "../services/complaintApi"
 import StatusBadge from "@/components/dashboard/StatusBadge"
 import { creditService } from "./service"
 import { creditStatuses, type CreditCommand, type CreditRecord } from "./model"
@@ -21,7 +21,7 @@ export default function CreditCase({
   const [intent, setIntent] = useState<Intent | null>(null),
     [error, setError] = useState("")
   const admin = actor.kind === "staff" && actor.roles.includes("secretariat")
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const f = new FormData(event.currentTarget),
       v = (n: string) => String(f.get(n) || "").trim()
@@ -63,7 +63,7 @@ export default function CreditCase({
         confirmedIndependent: f.has("independent"),
       }
     try {
-      creditService.dispatch(actor, command)
+      await creditService.dispatch(actor, command)
       setIntent(null)
       setError("")
     } catch (e) {
@@ -81,6 +81,11 @@ export default function CreditCase({
   return (
     <Dialog title={`${r.id} · Case details`} onClose={onClose}>
       <h2>{r.customer}</h2>
+      {error && !intent && (
+        <p role="alert" className="workspace-feedback error">
+          {error}
+        </p>
+      )}
       <StatusBadge status={r.status} />
       <p>
         {r.status === "disputed"
@@ -98,6 +103,7 @@ export default function CreditCase({
           Reminders: r.reminders,
           "Last update": new Date(r.updatedAt).toLocaleString(),
           Verification: r.verification || "Pending",
+          "Review outcome": r.reviewOutcome || "Awaiting verification",
           "Customer notice": r.noticeAt
             ? `Prepared ${new Date(r.noticeAt).toLocaleDateString()}`
             : "Not recorded",
@@ -114,7 +120,22 @@ export default function CreditCase({
       </dl>
       <h3>Evidence</h3>
       {r.evidence.length ? (
-        r.evidence.map((f) => <EvidencePreview key={f.id} file={f} />)
+        r.evidence.map((f) => (
+          <p key={f.id}>
+            <Button
+              kind="secondary"
+              onClick={async () => {
+                try {
+                  await downloadEvidence(actor, true, r.id, f.id, f.name)
+                } catch (e) {
+                  setError((e as Error).message)
+                }
+              }}
+            >
+              Download {f.name}
+            </Button>
+          </p>
+        ))
       ) : (
         <p>No supporting documents are available for this record.</p>
       )}

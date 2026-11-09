@@ -1,3 +1,4 @@
+import { tradeCreditEligibility } from "../services/access"
 import { useState, type FormEvent } from "react"
 import type {
   Actor,
@@ -14,7 +15,7 @@ import CreditSubmission from "./CreditSubmission"
 import CreditReferences from "./CreditReferences"
 import CreditCase from "./CreditCase"
 import useCreditWorkspace, { creditService } from "./service"
-import { canParticipate, creditStatuses, memberNotices } from "./model"
+import { canParticipate, creditStatuses } from "./model"
 export default function TradeWorkspace({
   actor,
   membership,
@@ -33,11 +34,24 @@ export default function TradeWorkspace({
   const enrolled = state.enrolments.find(
     (e) => e.organisationId === actor.organisationId,
   )
-  if (!admin && !canParticipate(actor, membership.applications))
+  const eligibility = tradeCreditEligibility(
+    membership.applications.find(
+      (a) => a.organisationId === actor.organisationId,
+    ),
+    membership.invoices,
+  )
+  if (
+    !admin &&
+    !canParticipate(actor, membership.applications, membership.invoices)
+  )
     return (
       <EmptyState
         title="Trade Credit access unavailable"
-        text="ISPAU must provision Trade Credit participation after membership verification. Active membership, current standing and portal access are also required. All provisioned ISPs receive the same tools. Contact the Secretariat to resolve access."
+        text={
+          eligibility.reason === "subscription"
+            ? "Your subscription has expired. Trade Credit access resumes when renewal payment is confirmed. You can still open your invoices and update your account."
+            : "Trade Credit is included for verified ISPs. Contact the membership team if your verification or portal access needs attention."
+        }
       />
     )
   const own = state.records.filter(
@@ -63,11 +77,11 @@ export default function TradeWorkspace({
   const organisation = (id: string) =>
     membership.applications.find((a) => a.organisationId === id)
       ?.organisation || id
-  function enrol(event: FormEvent<HTMLFormElement>) {
+  async function enrol(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const f = new FormData(event.currentTarget)
     try {
-      creditService.dispatch(actor, {
+      await creditService.dispatch(actor, {
         type: "enrol",
         officer: String(f.get("officer") || ""),
         contact: String(f.get("contact") || ""),
@@ -83,7 +97,7 @@ export default function TradeWorkspace({
   function done() {
     setTab("overview")
     setSuccess(
-      "Record saved. New and updated payment records require ISPAU verification.",
+      "Complaint submitted privately. ISPAU will review it before reference access is available.",
     )
   }
   return (
@@ -121,18 +135,15 @@ export default function TradeWorkspace({
           {success}
         </p>
       )}
-      {error && (
+      {(error || creditService.getError()) && (
         <p role="alert" className="workspace-feedback error">
-          {error}
+          {error || creditService.getError()}
         </p>
       )}
-      {!admin && (!enrolled || tab === "enrolment") ? (
+      {!admin && tab === "enrolment" ? (
         <form onSubmit={enrol} className="workspace-panel">
           <h2>Your ISP's accountable officer</h2>
-          <p>
-            Appoint the responsible contact before participating. * Required.
-            Review the participation requirements before continuing.
-          </p>
+          <p>Keep your responsible contact up to date.</p>
           <div className="grid gap-5 md:grid-cols-2">
             <FormField
               name="officer"
@@ -179,7 +190,7 @@ export default function TradeWorkspace({
               >
                 {tab === "submit" || tab === "enrolment"
                   ? "Back to payment records"
-                  : "Submit payment record"}
+                  : "Submit a complaint"}
               </Button>
               <Button kind="ghost" onClick={() => setTab("enrolment")}>
                 Manage accountable officer
@@ -233,7 +244,7 @@ export default function TradeWorkspace({
                 confidential terms are not published as a list.
               </p>
               <DataTable
-                rows={memberNotices(state)}
+                rows={creditService.getNotices()}
                 rowKey={(r) => r.id}
                 label="ISPAU reviewed member notices"
                 columns={[
@@ -346,7 +357,14 @@ export default function TradeWorkspace({
                       : []),
                     {
                       label: "Status",
-                      cell: (r) => <StatusBadge status={r.status} />,
+                      cell: (r) => (
+                        <>
+                          <StatusBadge status={r.status} />
+                          {r.reviewOutcome && (
+                            <small className="block">{r.reviewOutcome}</small>
+                          )}
+                        </>
+                      ),
                       sort: (r) => r.status,
                     },
                     {

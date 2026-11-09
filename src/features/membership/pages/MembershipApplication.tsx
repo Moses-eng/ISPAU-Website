@@ -8,6 +8,8 @@ import type {
   FileRecord,
 } from "@/features/membership/types/workspace"
 import { membershipService } from "@/services/membershipService"
+import { demoSession } from "@/services/demoSession"
+import { navigateTo } from "@/app/navigation"
 import { acceptFile } from "@/features/membership/services/files"
 import { validateApplication } from "@/features/membership/services/validation"
 import ApplicationInput from "@/features/membership/components/ApplicationInput"
@@ -20,8 +22,7 @@ import Tag from "@/components/ui/Tag"
 import type { View } from "@/types/View"
 import { applicationSectionNames } from "@/features/membership/data/applicationSectionNames"
 import { membershipFormSchema } from "@/features/membership/data/membershipFormSchema"
-import { useRef } from "react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 export default function MembershipApplication({
   go,
@@ -30,59 +31,41 @@ export default function MembershipApplication({
   onFeedback,
 }: {
   go: (v: View) => void
-  workspaceApplication?: Application
-  actor?: Actor
+  workspaceApplication: Application
+  actor: Actor
   onFeedback?: (message: string, error?: boolean) => void
 }) {
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(() => {
+    const saved = Number(workspaceApplication.values.resumeSection || 0)
+    return Number.isInteger(saved) &&
+      saved >= 0 &&
+      saved < applicationSectionNames.length
+      ? saved
+      : 0
+  })
   const [saveState, setSaveState] = useState<
     "saved" | "saving" | "failed" | "unsaved"
-  >("unsaved")
+  >("saved")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [uploads, setUploads] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      (workspaceApplication?.evidence || []).map((file) => [
-        file.category,
-        file.name,
-      ]),
+      workspaceApplication.evidence.map((file) => [file.category, file.name]),
     ),
   )
   const [evidenceRecords, setEvidenceRecords] = useState<FileRecord[]>(
-    workspaceApplication?.evidence || [],
+    workspaceApplication.evidence,
   )
   const [confirmSubmit, setConfirmSubmit] = useState(false)
   const [licenceEntries, setLicenceEntries] = useState(
-    Number(workspaceApplication?.values.licenceEntries || 1),
+    Number(workspaceApplication.values.licenceEntries || 1),
   )
   const errorSummary = useRef<HTMLDivElement>(null)
-  const [values, setValues] = useState<MembershipApplicationValues>(() => {
-    if (workspaceApplication)
-      return {
-        registrationCountry: "Uganda",
-        directoryConsent: false,
-        promotionalConsent: false,
-        ...workspaceApplication.values,
-      }
-    const saved = localStorage.getItem("ispau-membership-draft")
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch {
-        // Ignore malformed local draft data.
-      }
-    }
-    return {
-      registrationCountry: "Uganda",
-      sameRepresentative: false,
-      authorityConfirmed: false,
-      directoryConsent: false,
-      promotionalConsent: false,
-      accuracyDeclaration: false,
-      rulesDeclaration: false,
-      restrictionsDeclaration: false,
-      privacyDeclaration: false,
-    }
-  })
+  const [values, setValues] = useState<MembershipApplicationValues>(() => ({
+    registrationCountry: "Uganda",
+    directoryConsent: false,
+    promotionalConsent: false,
+    ...workspaceApplication.values,
+  }))
   const setValue = (name: string, value: string | boolean) => {
     setValues((current) => {
       const next = { ...current, [name]: value }
@@ -219,20 +202,38 @@ export default function MembershipApplication({
     return true
   }
   const saveDraft = () => {
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        String(values.businessEmail || "").trim(),
+      )
+    ) {
+      setErrors({
+        businessEmail:
+          "Enter your official organisation email so you can sign in and resume later.",
+      })
+      setStep(0)
+      requestAnimationFrame(() =>
+        document.getElementById("application-businessEmail")?.focus(),
+      )
+      return false
+    }
     setSaveState("saving")
     try {
-      if (workspaceApplication && actor)
-        membershipService.dispatch(actor, {
-          type: "save-draft",
-          id: workspaceApplication.id,
-          values: { ...values, licenceEntries: String(licenceEntries) },
-          evidence: evidenceRecords,
-        })
-      else
-        localStorage.setItem("ispau-membership-draft", JSON.stringify(values))
-      window.setTimeout(() => setSaveState("saved"), 450)
+      membershipService.dispatch(actor, {
+        type: "save-draft",
+        id: workspaceApplication.id,
+        values: {
+          ...values,
+          licenceEntries: String(licenceEntries),
+          resumeSection: String(step),
+        },
+        evidence: evidenceRecords,
+      })
+      setSaveState("saved")
+      return true
     } catch {
       setSaveState("failed")
+      return false
     }
   }
   const continueApplication = () => {
@@ -257,21 +258,20 @@ export default function MembershipApplication({
     setConfirmSubmit(true)
   }
   const confirmApplicationSubmission = () => {
-    if (workspaceApplication && actor) {
-      try {
-        membershipService.dispatch(actor, {
-          type: "submit",
-          id: workspaceApplication.id,
-          values: { ...values, licenceEntries: String(licenceEntries) },
-          evidence: evidenceRecords,
-        })
-        onFeedback?.("Application recorded. Acknowledgement prepared.")
-      } catch (error) {
-        setErrors({ submission: (error as Error).message })
-        setConfirmSubmit(false)
-        return
-      }
-    } else localStorage.removeItem("ispau-membership-draft")
+    try {
+      membershipService.dispatch(actor, {
+        type: "submit",
+        id: workspaceApplication.id,
+        values: { ...values, licenceEntries: String(licenceEntries) },
+        evidence: evidenceRecords,
+      })
+      onFeedback?.("Application recorded. Acknowledgement prepared.")
+    } catch (error) {
+      setErrors({ submission: (error as Error).message })
+      setConfirmSubmit(false)
+      return
+    }
+
     go("submitted")
   }
   const input = (
@@ -322,8 +322,10 @@ export default function MembershipApplication({
         <Button
           kind="ghost"
           onClick={() => {
-            saveDraft()
-            go("applicant")
+            if (saveDraft()) {
+              demoSession.signOut()
+              navigateTo("/#login")
+            }
           }}
         >
           Save and exit
@@ -414,14 +416,16 @@ export default function MembershipApplication({
                   "registrationReference",
                   "Registration number or equivalent establishment reference",
                 )}
-                {input("businessEmail", "Main business email")}
+                {input("businessEmail", "Official organisation email")}
                 {input("registeredAddress", "Registered address")}
                 {input("ugandaAddress", "Uganda operating address")}
                 {input("businessPhone", "Main business phone")}
                 {input("website", "Website", undefined, true)}
               </div>
               <p className="helper">
-                A registration number and establishment reference are
+                Use this official organisation email to sign in and resume your
+                application. Verification codes will be sent here. A
+                registration number and establishment reference are
                 alternatives; provide the one that applies to your organisation.
               </p>
             </section>

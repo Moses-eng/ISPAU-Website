@@ -23,3 +23,7 @@ ISP tools are common across organisations, while private records remain scoped b
 API integration must enforce permissions, validate transitions, protect files and persist audit records on the server. Keep transport code in data adapters so UI components remain reusable.
 
 `src/app/workspaceModules.ts` is the branch registration point. It does not import staff screens on `main`; the staff branch registers those screens without duplicating the public site or portal.
+
+Organisation entry uses the email/OTP UI in `src/features/auth`. `OtpInput` owns code entry; `Login` currently simulates verification. Draft applications are edited only inside the organisation workspace using `membershipService`; the form requires its application and actor. `DemoIdentity` is limited to staff previews.
+
+See [UI changes and cleanup](ui-changes.md) for current behavior and [backend integration](backend-integration.md) for proposed endpoints, adapter replacements, data shapes and production handoff requirements.

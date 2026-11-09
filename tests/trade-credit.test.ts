@@ -124,7 +124,7 @@ test("one ISP submission requires notice and ISPAU verification before another I
   })
   assert.equal(s.records[0].status, "settled")
 })
-test("case isolation, membership gating, enrolment and mandatory search declarations", () => {
+test("case isolation, membership gating, automatic enrolment and mandatory search declarations", () => {
   const s = enrolled(),
     id = s.records[0].id
   assert.throws(
@@ -146,7 +146,7 @@ test("case isolation, membership gating, enrolment and mandatory search declarat
         balance: 0,
         requestedStatus: "settled",
       }),
-    /officer/,
+    /cannot access/,
   )
   const other = run(s, member("org-8"), {
     type: "enrol",

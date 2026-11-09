@@ -3,7 +3,7 @@
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
   min-height: 100dvh;
-  background: #f8f5f6;
+  background: #f7f7f8;
 }
 .workspace-sidebar {
   background: var(--burgundy-deep);
@@ -44,13 +44,14 @@
   text-align: left;
   font-size: 14px;
 }
-.workspace-sidebar nav button:hover,
-.workspace-sidebar nav button[aria-current] {
+.workspace-sidebar nav button:hover {
   background: #ffffff17;
   color: white;
 }
 .workspace-sidebar nav button[aria-current] {
-  box-shadow: inset 3px 0 #d7a8b7;
+  background: #faf7f8;
+  color: var(--burgundy-deep);
+  font-weight: 650;
 }
 .workspace-sidebar-bottom {
   margin-top: auto;
@@ -163,8 +164,8 @@
 }
 .workspace-panel {
   background: white;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 1px solid #e7e3e5;
+  border-radius: 12px;
   padding: 24px;
   margin: 20px 0;
   min-width: 0;
@@ -197,13 +198,13 @@
   gap: 16px;
 }
 .workspace-summary {
-  border: 1px solid var(--border);
-  border-top: 3px solid var(--burgundy-wine);
-  border-radius: 12px 0 12px 0;
-  padding: 18px 20px;
+  border: 1px solid #e7e3e5;
+  border-radius: 12px;
+  padding: 22px;
   background: white;
+  box-shadow: 0 2px 5px #2b1c2105;
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 .workspace-summary > span {
   font-size: 12px;
@@ -211,9 +212,11 @@
   color: var(--muted);
 }
 .workspace-summary > strong {
-  font-size: 32px;
+  font-size: 34px;
   line-height: 1.15;
-  color: var(--burgundy-primary);
+  color: var(--text);
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
 }
 .workspace-summary small {
   font-size: 10px;
@@ -412,12 +415,11 @@
 .workspace-note,
 .workspace-feedback {
   border: 1px solid var(--border);
-  border-left: 3px solid var(--burgundy-wine);
   background: white;
   padding: 14px 18px;
   font-size: 12px;
   margin-bottom: 18px;
-  border-radius: 6px;
+  border-radius: 10px;
 }
 .workspace-feedback {
   position: relative;
@@ -493,10 +495,9 @@
   grid-template-columns: 1fr 1fr;
   gap: 28px;
   border: 1px solid var(--border);
-  border-left: 4px solid var(--burgundy-primary);
-  border-radius: 22px 0 22px 0;
+  border-radius: 12px;
   padding: 24px;
-  background: linear-gradient(100deg, #fff, #f2e6eb);
+  background: white;
 }
 .workspace-member-banner h2 {
   font-size: 24px;
@@ -812,6 +813,8 @@
 .credit-tabs .btn {
   min-height: 44px;
   font-size: 13px;
+  box-shadow: none;
+  transform: none;
 }
 .credit-summary {
   display: grid;
@@ -845,4 +848,101 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+.count-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 6px;
+  border-radius: 20px;
+  background: var(--burgundy-tint);
+  color: var(--burgundy-primary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.workspace-sidebar nav .count-badge {
+  margin-left: auto;
+}
+.notification-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--burgundy-primary);
+  border-radius: 8px;
+  margin-left: auto;
+}
+.notification-trigger:hover {
+  background: var(--burgundy-tint);
+}
+.notification-trigger:focus-visible {
+  outline: 2px solid var(--burgundy-primary);
+  outline-offset: 2px;
+}
+.notification-trigger + .workspace-account {
+  margin-left: 0;
+}
+.notification-list {
+  display: grid;
+}
+.notification-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+.notification-item:last-child {
+  border-bottom: 0;
+}
+.notification-item .count-badge {
+  margin-left: 8px;
+}
+.notification-item p {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+.notification-item .text-link {
+  min-height: 44px;
+}
+.workspace-sidebar nav button:focus-visible {
+  outline: 2px solid #d7a8b7;
+  outline-offset: 3px;
+}
+.credit-tabs .btn[aria-current="page"] {
+  background: var(--burgundy-tint);
+  color: var(--burgundy-primary);
+  border-color: #d8c5cc;
+}
+.credit-summary {
+  margin: 20px 0;
+  gap: 16px;
+}
+.credit-summary > .workspace-panel {
+  margin: 0;
+  padding: 22px;
+  box-shadow: 0 2px 5px #2b1c2105;
+}
+.credit-summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.credit-summary strong {
+  color: var(--text);
+  font-size: 34px;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
 }

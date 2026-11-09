@@ -15,12 +15,15 @@ export default function CreditSubmission({
 }) {
   const [error, setError] = useState("")
   const [files, setFiles] = useState<FileRecord[]>([])
-  function submit(event: FormEvent<HTMLFormElement>) {
+  const [busy, setBusy] = useState(false)
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (busy) return
     const data = new FormData(event.currentTarget)
     const v = (name: string) => String(data.get(name) || "").trim()
     try {
-      creditService.dispatch(
+      setBusy(true)
+      await creditService.dispatch(
         actor,
         satisfactory
           ? {
@@ -43,6 +46,8 @@ export default function CreditSubmission({
       onDone()
     } catch (e) {
       setError((e as Error).message)
+    } finally {
+      setBusy(false)
     }
   }
   return (
@@ -50,12 +55,9 @@ export default function CreditSubmission({
       <h2>
         {satisfactory
           ? "Record satisfactory payment history"
-          : "Submit a payment record"}
+          : "Submit a complaint"}
       </h2>
-      <p>
-        * Required. New submissions require ISPAU verification before reference
-        access.
-      </p>
+      <p>Private to your ISP and ISPAU until verified. * Required fields.</p>
       {error && (
         <p role="alert" className="workspace-feedback error">
           {error}
@@ -140,10 +142,12 @@ export default function CreditSubmission({
         </div>
       ))}
       <div className="mt-6">
-        <Button type="submit">
-          {satisfactory
-            ? "Save satisfactory reference"
-            : "Submit for ISPAU verification"}
+        <Button type="submit" disabled={busy}>
+          {busy
+            ? "Submitting…"
+            : satisfactory
+              ? "Save satisfactory reference"
+              : "Submit for ISPAU verification"}
         </Button>
       </div>
     </form>

@@ -1,3 +1,4 @@
+import CountBadge from "@/components/ui/CountBadge"
 import Button from "@/components/ui/Button"
 export default function SectionNavigation({
   label,
@@ -6,7 +7,7 @@ export default function SectionNavigation({
   onSelect,
 }: {
   label: string
-  items: { id: string; label: string }[]
+  items: { id: string; label: string; count?: number }[]
   current: string
   onSelect: (id: string) => void
 }) {
@@ -20,6 +21,7 @@ export default function SectionNavigation({
           onClick={() => onSelect(item.id)}
         >
           {item.label}
+          <CountBadge count={item.count || 0} />
         </Button>
       ))}
     </nav>

@@ -1,3 +1,6 @@
+import CountBadge from "@/components/ui/CountBadge"
+import NotificationMenu from "./NotificationMenu"
+import type { WorkspaceAlert } from "@/features/notifications/model"
 import { useEffect, useState, type ReactNode } from "react"
 import Logo from "@/components/layout/Logo"
 import MenuToggle from "@/components/ui/MenuToggle"
@@ -12,9 +15,11 @@ export default function WorkspaceShell({
   onNavigate,
   onIdentity,
   children,
+  alerts = [],
 }: {
   actor: Actor
-  navigation: { id: string; label: string; icon: string }[]
+  navigation: { id: string; label: string; icon: string; count?: number }[]
+  alerts?: WorkspaceAlert[]
   current: string
   onNavigate: (id: string) => void
   onIdentity: () => void
@@ -74,6 +79,7 @@ export default function WorkspaceShell({
             >
               <Icon name={item.icon} size={18} />
               {item.label}
+              <CountBadge count={item.count || 0} />
             </button>
           ))}
         </nav>
@@ -106,6 +112,12 @@ export default function WorkspaceShell({
             {navigation.find((n) => n.id === current)?.label ||
               "Application detail"}
           </span>
+          <NotificationMenu
+            key={actor.id}
+            actorKey={`organisation:${actor.id}`}
+            items={alerts}
+            onNavigate={onNavigate}
+          />
           <button className="workspace-account" onClick={onIdentity}>
             <span className="workspace-avatar">
               {actor.name

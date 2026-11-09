@@ -1,3 +1,4 @@
+import { safeWebsite } from "../services/profileSeo"
 import CompanyLogo from "@/features/directory/components/CompanyLogo"
 import Icon from "@/components/ui/Icon"
 import type { PublicMember } from "@/types/PublicMember"
@@ -25,7 +26,11 @@ export default function CompanyProfile({
               <CompanyLogo member={member} />
             </div>
             <div>
-              <span className="eyebrow">Sample public company profile</span>
+              <span className="eyebrow">
+                {member.isPreview
+                  ? "Sample public company profile"
+                  : "ISPAU member profile"}
+              </span>
               <h1>{member.name}</h1>
               <p>{member.description}</p>
             </div>
@@ -51,13 +56,17 @@ export default function CompanyProfile({
         <aside className="public-contact-panel">
           <h2>Public business details</h2>
           <dl>
-            <dt>Office location</dt>
-            <dd>
-              {member.city}, {member.district} District
-            </dd>
+            {(member.city || member.district) && (
+              <>
+                <dt>Office location</dt>
+                <dd>
+                  {[member.city, member.district].filter(Boolean).join(", ")}
+                </dd>
+              </>
+            )}
             <dt>Official website</dt>
             <dd>
-              <a href={`https://${member.website}`}>{member.website}</a>
+              <a href={safeWebsite(member.website)}>{member.website}</a>
             </dd>
             {member.email && (
               <>
@@ -88,10 +97,11 @@ export default function CompanyProfile({
         <div className="section">
           <Icon name="shield" />
           <p>
-            This sample shows the public profile format and does not confirm
-            membership or publication approval. Published profiles contain
-            approved business information only. Membership is not regulatory
-            certification.
+            {member.isPreview
+              ? "This sample shows the public profile format and does not confirm membership or publication approval. "
+              : ""}
+            Published profiles contain approved public business information
+            only. Membership is not regulatory certification.
           </p>
         </div>
       </section>

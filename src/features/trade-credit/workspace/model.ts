@@ -1,3 +1,4 @@
+import { tradeCreditEligibility, todayInUganda } from "../services/access.ts"
 import type {
   Actor,
   Application,
@@ -33,6 +34,7 @@ export type CreditRecord = {
   appealReason?: string
   outcome?: string
   approved?: boolean
+  reviewOutcome?: "Approved" | "Clarification needed" | "Declined"
   activity: { id: string; actor: string; date: string; text: string }[]
 }
 export type Reference = {
@@ -150,17 +152,19 @@ export function createCreditState(): CreditState {
 const requireText = (text: string, label: string) => {
   if (!text.trim()) throw new Error(`${label} is required.`)
 }
-export function canParticipate(actor: Actor, applications: Application[]) {
+export function canParticipate(
+  actor: Actor,
+  applications: Application[],
+  invoices: import("../services/access.ts").SubscriptionInvoice[] = [],
+  today?: string,
+) {
   return (
     actor.kind === "organisation" &&
-    applications.some(
-      (a) =>
-        a.organisationId === actor.organisationId &&
-        a.stage === "Active" &&
-        a.portalAccess &&
-        a.standing === "Current" &&
-        a.tradeCreditAccess?.enabled === true,
-    )
+    tradeCreditEligibility(
+      applications.find((a) => a.organisationId === actor.organisationId),
+      invoices,
+      today,
+    ).allowed
   )
 }
 export function applyCreditCommand(
@@ -169,10 +173,16 @@ export function applyCreditCommand(
   command: CreditCommand,
   applications: Application[],
   date = new Date().toISOString(),
+  invoices: import("../services/access.ts").SubscriptionInvoice[] = [],
 ): CreditState {
   const s = structuredClone(previous)
   const admin = actor.kind === "staff" && actor.roles.includes("secretariat")
-  const member = canParticipate(actor, applications)
+  const member = canParticipate(
+    actor,
+    applications,
+    invoices,
+    todayInUganda(new Date(date)),
+  )
   if (!admin && !member)
     throw new Error(
       "Trade Credit requires an active, authorised ISP account or ISPAU administrator.",
@@ -194,18 +204,6 @@ export function applyCreditCommand(
   )
     throw new Error(
       "Use an authorised ISP organisation account for this action.",
-    )
-  const enrolled = s.enrolments.some(
-    (e) => e.organisationId === actor.organisationId,
-  )
-  if (
-    ["submit", "reference", "search", "update", "dispute"].includes(
-      command.type,
-    ) &&
-    !enrolled
-  )
-    throw new Error(
-      "Appoint an accountable officer and accept the participation rules first.",
     )
   const id = () => `TC-${crypto.randomUUID()}`
   if (command.type === "enrol") {

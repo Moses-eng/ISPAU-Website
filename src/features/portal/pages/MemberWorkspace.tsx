@@ -1,3 +1,4 @@
+import { tradeCreditEligibility } from "@/features/trade-credit/services/access"
 import MemberCompany from "./MemberCompany"
 import MemberMembership from "./MemberMembership"
 import TradeWorkspace from "@/features/trade-credit/workspace/TradeWorkspace"
@@ -45,8 +46,7 @@ export default function MemberWorkspace({
         text="You can only access your own organisation's record."
       />
     )
-  const active = a.stage === "Active",
-    invoice = state.invoices.find((i) => i.applicationId === a.id)
+  const active = a.stage === "Active"
   if (section === "trade-credit")
     return <TradeWorkspace actor={actor} membership={state} />
   if (!active && section === "invoices")
@@ -94,9 +94,12 @@ export default function MemberWorkspace({
           <p>Portal access: {a.portalAccess ? "Enabled" : "Restricted"}</p>
           <p>
             Trade Credit:{" "}
-            {a.tradeCreditAccess?.enabled
-              ? "Provisioned by ISPAU"
-              : "ISPAU provisioning required"}
+            {tradeCreditEligibility(a, state.invoices).allowed
+              ? "Enrolled automatically"
+              : tradeCreditEligibility(a, state.invoices).reason ===
+                  "subscription"
+                ? "Paused until renewal payment is confirmed"
+                : "Available after ISP verification"}
             .
           </p>
           <p>

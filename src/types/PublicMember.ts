@@ -1,4 +1,5 @@
 export type PublicMember = {
+  isPreview?: boolean
   id: string
   name: string
   initials: string

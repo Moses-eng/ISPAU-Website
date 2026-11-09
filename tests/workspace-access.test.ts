@@ -2,10 +2,6 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { createDemoState } from "../src/mocks/membership.ts"
 import {
-  applyCommand,
-  published,
-} from "../src/features/membership/services/workflow.ts"
-import {
   canParticipate,
   applyCreditCommand,
   createCreditState,
@@ -19,7 +15,6 @@ import {
   staffGroup,
 } from "../src/config/workspace.ts"
 import type { Actor } from "../src/features/membership/types/workspace.ts"
-const admin = demoStaff[0]
 const owner: Actor = {
   id: "member",
   name: "ISP",
@@ -47,95 +42,39 @@ test("all member tiers share ISP authority without acquiring ISPAU powers", () =
     )
   }
 })
-test("ISPAU provisioning is explicit, scoped and reversible without altering membership or directory", () => {
-  let state = createDemoState()
-  const a = state.applications.find(
-      (a) => a.organisationId === demoMemberOrganisationId,
-    )!,
-    id = a.id
-  a.tradeCreditAccess = undefined
-  assert.equal(canParticipate(owner, state.applications), false)
-  assert.throws(
-    () =>
-      applyCommand(state, owner, {
-        type: "trade-access",
-        id,
-        enabled: true,
-        reason: "Enable",
-      }),
-    /permission/,
-  )
-  const before = published(a)
-  state = applyCommand(state, admin, {
-    type: "trade-access",
-    id,
-    enabled: true,
-    reason: "Accountable organisation verified; initiation approved",
-  })
-  assert.equal(canParticipate(owner, state.applications), true)
-  assert.equal(
-    state.applications.find((a) => a.id === id)!.tradeCreditAccess!.actor,
-    "ISPAU Admin",
-  )
-  state = applyCommand(state, admin, {
-    type: "trade-access",
-    id,
-    enabled: false,
-    reason: "Participation temporarily restricted",
-  })
-  const after = state.applications.find((a) => a.id === id)!
-  assert.equal(canParticipate(owner, state.applications), false)
-  assert.equal(after.stage, "Active")
-  assert.equal(published(after), before)
-  assert.equal(after.portalAccess, true)
-  assert.equal(
-    state.applications.find((a) => a.organisationId === "org-8")!
-      .tradeCreditAccess!.enabled,
-    true,
-  )
-  assert.throws(
-    () =>
-      applyCreditCommand(
-        createCreditState(),
-        owner,
-        {
-          type: "enrol",
-          officer: "Officer",
-          contact: "office@example.test",
-          accepted: true,
-        },
-        state.applications,
-      ),
-    /active/,
-  )
-})
-test("staff cannot provision unapproved applicants and a missing reason never changes access", () => {
+test("verified ISPs can use Trade Credit without a manual provisioning flag or enrolment gate", () => {
   const state = createDemoState()
-  assert.throws(
-    () =>
-      applyCommand(state, admin, {
-        type: "trade-access",
-        id: state.applications[0].id,
-        enabled: true,
-        reason: "Grant",
-      }),
-    /stage/,
-  )
   const a = state.applications.find(
     (a) => a.organisationId === demoMemberOrganisationId,
   )!
-  assert.throws(
-    () =>
-      applyCommand(state, admin, {
-        type: "trade-access",
-        id: a.id,
-        enabled: false,
-        reason: "",
-      }),
-    /reason/,
+  a.tradeCreditAccess = undefined
+  assert.equal(
+    canParticipate(owner, state.applications, state.invoices, "2026-11-09"),
+    true,
   )
-  assert.equal(a.tradeCreditAccess!.enabled, true)
+  const result = applyCreditCommand(
+    createCreditState(),
+    owner,
+    {
+      type: "search",
+      customer: "Example",
+      purpose: "Credit decision",
+      authorised: true,
+    },
+    state.applications,
+    "2026-11-09T10:00:00Z",
+    state.invoices,
+  )
+  assert.equal(result.searches.length, 1)
+  a.periodEnd = "2026-11-08"
+  for (const invoice of state.invoices)
+    if (invoice.applicationId === a.id) invoice.periodEnd = "2026-11-08"
+  assert.equal(
+    canParticipate(owner, state.applications, state.invoices, "2026-11-09"),
+    false,
+  )
 })
+
 test("simple primary navigation groups legacy routes without discarding functionality", () => {
   assert.equal(demoStaff.length, 1)
   assert.deepEqual(

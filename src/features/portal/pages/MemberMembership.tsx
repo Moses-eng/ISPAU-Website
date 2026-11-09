@@ -1,3 +1,4 @@
+import { workspaceAlerts } from "@/features/notifications/model"
 import type {
   Actor,
   Application,
@@ -26,7 +27,11 @@ export default function MemberMembership({
       <SectionNavigation
         label="Membership sections"
         items={[
-          { id: "membership", label: "Invoices & documents" },
+          {
+            id: "membership",
+            label: "Invoices & documents",
+            count: workspaceAlerts(actor, state).counts.invoices,
+          },
           { id: "renewal", label: "Renewal" },
         ]}
         current={section === "renewal" ? "renewal" : "membership"}

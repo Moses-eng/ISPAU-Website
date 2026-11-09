@@ -1083,29 +1083,6 @@ footer {
   margin: auto;
   padding: 38px 34px 70px;
 }
-.portal-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 28px;
-  margin-bottom: 26px;
-}
-.portal-heading > div:first-child > span {
-  color: var(--teal);
-  text-transform: uppercase;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-.portal-heading h1 {
-  font-size: 30px;
-  color: var(--navy);
-  margin: 3px 0;
-  letter-spacing: -0.025em;
-}
-.portal-heading p {
-  margin: 0;
-}
 .status-panel,
 .member-banner {
   background: white;
@@ -2038,15 +2015,6 @@ footer {
   }
   .portal-main {
     padding: 22px 15px 60px;
-  }
-  .portal-heading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .portal-heading .button-row,
-  .portal-heading .button-row .btn {
-    width: 100%;
   }
   .status-panel,
   .member-banner {

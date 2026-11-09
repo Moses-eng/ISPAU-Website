@@ -1,6 +1,12 @@
+import { workspaceAlerts } from "@/features/notifications/model"
 import { staffWorkspace as StaffWorkspace } from "./workspaceModules"
+import Login from "@/features/auth/pages/Login"
 import LoadingState from "@/components/dashboard/LoadingState"
-import { lazy, Suspense, useState } from "react"
+import { lazy, Suspense, useState, useEffect } from "react"
+import useCreditWorkspace, {
+  creditService,
+} from "@/features/trade-credit/workspace/service"
+import { canParticipate } from "@/features/trade-credit/workspace/model"
 import useMembershipWorkspace from "@/hooks/useMembershipWorkspace"
 import { demoSession } from "@/services/demoSession"
 import WorkspaceShell from "@/components/dashboard/WorkspaceShell"
@@ -24,11 +30,20 @@ import {
 import type { Actor } from "@/features/membership/types/workspace"
 import { navigateTo } from "./navigation"
 export default function DashboardApp({ url }: { url: string }) {
+  const credit = useCreditWorkspace()
   const { state, actor } = useMembershipWorkspace(),
     [switching, setSwitching] = useState(false),
     [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(
       null,
     )
+  useEffect(() => {
+    if (!actor) return
+    void creditService.refresh(actor)
+    const timer = setInterval(() => {
+      void creditService.refresh(actor)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [actor, state])
   const staff = location.pathname.startsWith("/staff"),
     kind = staff ? "staff" : "organisation"
   const route =
@@ -45,7 +60,6 @@ export default function DashboardApp({ url }: { url: string }) {
     setSwitching(false)
     navigate(
       !staff &&
-        route === "application" &&
         state.applications.some(
           (a) =>
             a.organisationId === identity.organisationId && a.stage === "Draft",
@@ -57,6 +71,33 @@ export default function DashboardApp({ url }: { url: string }) {
   const application = state.applications.find(
     (a) => a.organisationId === actor?.organisationId,
   )
+  const alerts = actor
+    ? workspaceAlerts(actor, state)
+    : { items: [], counts: {} as Record<string, number> }
+  if (actor && canParticipate(actor, state.applications, state.invoices)) {
+    for (const r of credit.records.filter(
+      (r) => r.organisationId === actor.organisationId && r.reviewOutcome,
+    )) {
+      alerts.items.push({
+        id: `complaint-review:${r.id}:${r.updatedAt}`,
+        title: `Complaint ${r.reviewOutcome?.toLowerCase()}`,
+        detail: `${r.customer} · ${r.verification || r.reviewOutcome}`,
+        route: "trade-credit",
+        date: r.updatedAt,
+      })
+      if (r.reviewOutcome === "Clarification needed")
+        alerts.counts["trade-credit"] = (alerts.counts["trade-credit"] || 0) + 1
+    }
+    for (const n of creditService.getNotices())
+      if (!credit.records.some((r) => r.id === n.id))
+        alerts.items.push({
+          id: `reference-notice:${n.id}:${n.updatedAt}`,
+          title: "A verified credit reference is available",
+          detail: `Case ${n.id}. Use an authorised customer reference request.`,
+          route: "trade-credit",
+          date: n.updatedAt,
+        })
+  }
   const navigation = staff
     ? staffNavigation.filter(
         (item) =>
@@ -95,6 +136,8 @@ export default function DashboardApp({ url }: { url: string }) {
         />
       </main>
     )
+  if (!actor && !staff)
+    return <Login go={(view) => navigateTo(`/#${view}`)} onSignIn={signIn} />
   if (!actor)
     return (
       <main className="workspace-demo-login">
@@ -102,12 +145,7 @@ export default function DashboardApp({ url }: { url: string }) {
         <span className="eyebrow mt-8 block">ISPAU · Workspace preview</span>
         <h1>{staff ? "ISPAU administration" : "ISP Account Manager"}</h1>
         <p>Choose a workspace to continue.</p>
-        <DemoIdentity
-          kind={kind}
-          state={state}
-          applicationMode={!staff && route === "application"}
-          onSelect={signIn}
-        />
+        <DemoIdentity onSelect={signIn} />
       </main>
     )
   if (actor.kind !== kind)
@@ -167,7 +205,11 @@ export default function DashboardApp({ url }: { url: string }) {
   return (
     <WorkspaceShell
       actor={actor}
-      navigation={navigation}
+      navigation={navigation.map((item) => ({
+        ...item,
+        count: alerts.counts[item.id] || 0,
+      }))}
+      alerts={alerts.items}
       current={
         staff
           ? staffGroup(route.split("/")[0])
@@ -240,7 +282,7 @@ export default function DashboardApp({ url }: { url: string }) {
               </Button>
             </div>
           )}
-          <DemoIdentity kind={kind} state={state} onSelect={signIn} />
+          {staff && <DemoIdentity onSelect={signIn} />}
         </Dialog>
       )}
     </WorkspaceShell>

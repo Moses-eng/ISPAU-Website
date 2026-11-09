@@ -11,17 +11,11 @@ export default function SessionState({
   go: (v: View) => void
 }) {
   const content = {
-    "signed-out": [
-      "You’re signed out.",
-      "Your session has ended. Public pages remain available.",
-    ],
-    expired: [
-      "Your session has expired.",
-      "Sign in again before accessing private organisation or staff information.",
-    ],
+    "signed-out": ["You’re signed out.", "Sign in to continue."],
+    expired: ["Your session has expired.", "Sign in again to continue."],
     denied: [
       "Access denied.",
-      "This account does not have permission to open the requested record or function.",
+      "You don’t have permission to view this content.",
     ],
   }[kind]
   return (

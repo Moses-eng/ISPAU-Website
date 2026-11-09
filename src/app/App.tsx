@@ -1,3 +1,5 @@
+import ProfileSeo from "@/features/directory/services/ProfileMetadata"
+import { profileId } from "@/features/directory/services/profileSeo"
 import { staffAccess as StaffLogin } from "./workspaceModules"
 import CustomerRequests from "@/features/trade-credit/workspace/CustomerRequests"
 import { useEffect, useState, type ReactNode } from "react"
@@ -23,16 +25,30 @@ import type { View } from "@/types/View"
 import { navigateTo, portalAliases, staffAliases } from "./navigation"
 
 export default function App() {
-  const [hash, setHash] = useState(location.hash)
+  const [url, setUrl] = useState(location.pathname + location.hash)
   const members = usePublicDirectory()
   useEffect(() => {
-    const update = () => setHash(location.hash)
+    const update = () => setUrl(location.pathname + location.hash)
     addEventListener("hashchange", update)
-    return () => removeEventListener("hashchange", update)
+    addEventListener("popstate", update)
+    return () => {
+      removeEventListener("hashchange", update)
+      removeEventListener("popstate", update)
+    }
   }, [])
-  const [route, query] = hash.replace(/^#\/?/, "").split("?")
-  const view = (route || "home") as View
+  const [pathname, hash = ""] = url.split("#")
+  const [route, query] = hash.replace(/^\/?/, "").split("?")
+  const memberId = profileId(pathname)
+  const directoryPath = /^\/members\/?$/.test(pathname)
+  const view = (
+    directoryPath
+      ? "directory"
+      : pathname.startsWith("/members/")
+        ? "company-profile"
+        : route || "home"
+  ) as View
   const go = (next: View) => {
+    if (next === "directory") return navigateTo("/members/")
     if (staffAliases[next]) return navigateTo(`/staff#/${staffAliases[next]}`)
     if (portalAliases[next])
       return navigateTo(`/portal#/${portalAliases[next]}`)
@@ -42,10 +58,10 @@ export default function App() {
     )
       return navigateTo("/#home")
     navigateTo(`/#${next}`)
-    setHash(`#${next}`)
   }
   const selected = members.find(
-    (member) => member.id === new URLSearchParams(query).get("member"),
+    (member) =>
+      member.id === (memberId || new URLSearchParams(query).get("member")),
   )
   const pages: Partial<Record<View, ReactNode>> = {
     "record-request": <CustomerRequests go={go} />,
@@ -56,17 +72,7 @@ export default function App() {
     services: <Services go={go} />,
     contact: <Contact go={go} />,
     privacy: <Privacy go={go} />,
-    directory: (
-      <Directory
-        go={go}
-        onViewProfile={(id) => {
-          const next = `#company-profile?member=${encodeURIComponent(id)}`
-          location.hash = next
-          setHash(next)
-          window.scrollTo(0, 0)
-        }}
-      />
-    ),
+    directory: <Directory go={go} />,
     "company-profile": selected ? (
       <CompanyProfile go={go} member={selected} />
     ) : (
@@ -77,13 +83,7 @@ export default function App() {
         />
       </PublicShell>
     ),
-    login: (
-      <Login
-        go={go}
-        onSignIn={() => navigateTo("/portal")}
-        staffAccessEnabled={Boolean(StaffLogin)}
-      />
-    ),
+    login: <Login go={go} staffAccessEnabled={Boolean(StaffLogin)} />,
     "staff-login": StaffLogin ? (
       <StaffLogin go={go} onContinue={() => navigateTo("/staff")} />
     ) : (
@@ -107,5 +107,14 @@ export default function App() {
     expired: <SessionState kind="expired" go={go} />,
     denied: <SessionState kind="denied" go={go} />,
   }
-  return <>{pages[view] || pages.home}</>
+  return (
+    <>
+      <ProfileSeo
+        member={view === "company-profile" ? selected : undefined}
+        directory={view === "directory"}
+        unavailable={view === "company-profile" && !selected}
+      />
+      {pages[view] || pages.home}
+    </>
+  )
 }

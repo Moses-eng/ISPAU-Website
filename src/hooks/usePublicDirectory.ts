@@ -1,3 +1,4 @@
+import { profiles, configured } from "virtual:ispau-directory"
 import { getLocalUrl } from "@/features/membership/services/files"
 import { useSyncExternalStore } from "react"
 import { membershipService } from "@/services/membershipService"
@@ -8,8 +9,10 @@ export default function usePublicDirectory(): PublicMember[] {
     membershipService.subscribe,
     membershipService.getSnapshot,
   )
+  if (configured) return profiles
   return state.applications.filter(published).map((a) => ({
     id: a.memberId!,
+    isPreview: true,
     name: a.profile.name,
     initials: a.profile.name
       .split(" ")

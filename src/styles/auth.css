@@ -194,3 +194,159 @@
   font-size: 22px;
   font-weight: 700;
 }
+.otp-form {
+  display: grid;
+  gap: 18px;
+}
+.otp-change {
+  justify-self: start;
+}
+.otp-resend {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.otp-resend .text-link {
+  justify-self: start;
+}
+.otp-resend button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.otp-preview {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+}
+.otp-preview summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+.otp-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+/* Compact sign-in only; other authentication screens retain their layout. */
+.auth-login .auth-brand {
+  padding: clamp(28px, 4vw, 56px);
+  justify-content: center;
+}
+.auth-login .auth-brand > span {
+  margin-top: 36px;
+}
+.auth-login .auth-brand h1 {
+  font-size: clamp(2.4rem, 3.8vw, 3.6rem);
+  margin: 16px 0;
+}
+.auth-login .auth-brand p {
+  margin: 0;
+}
+.auth-login .auth-brand button {
+  margin-top: 14px;
+}
+.auth-login .auth-form {
+  gap: 12px;
+  padding: 24px 0;
+}
+.auth-login .auth-form > p {
+  margin: 0;
+}
+.auth-login .otp-form {
+  gap: 12px;
+}
+.auth-login .otp-form .field {
+  gap: 6px;
+}
+.auth-login .otp-resend {
+  gap: 4px;
+}
+.auth-login .otp-resend > span:empty {
+  display: none;
+}
+.auth-preview-only {
+  display: grid;
+  gap: 10px;
+}
+.auth-login .auth-note {
+  padding: 8px 0;
+}
+.auth-login .otp-preview {
+  padding: 8px 12px;
+}
+.auth-login .otp-preview p {
+  margin: 6px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.auth-login .otp-examples {
+  gap: 6px 16px;
+}
+@media (min-width: 901px) and (min-height: 600px) {
+  .auth-login {
+    min-height: 100svh;
+  }
+  .auth-login .auth-form {
+    gap: 10px;
+    padding: 16px 0;
+  }
+  .auth-login .auth-form h2 {
+    font-size: 30px;
+  }
+}
+
+.otp-boxes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(6px, 1.5vw, 12px);
+}
+.auth-page .otp-boxes input {
+  width: 100%;
+  min-width: 0;
+  height: 60px;
+  padding: 8px 0;
+  text-align: center;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+}
+.auth-page .otp-boxes input:focus {
+  outline: 2px solid var(--burgundy-primary);
+  outline-offset: 2px;
+}
+.auth-page .otp-boxes input[aria-invalid="true"] {
+  border-color: var(--burgundy-primary);
+}
+.auth-page .otp-boxes input:disabled {
+  opacity: 0.65;
+}
+.otp-verifying {
+  margin: 0;
+  color: var(--burgundy-primary);
+  font-size: 14px;
+}
+/* Keep authentication forms first and immediately visible on small screens. */
+@media (max-width: 900px) {
+  .auth-page > .auth-brand {
+    display: none;
+  }
+  .auth-page {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    min-height: 100svh;
+  }
+  .auth-page > .auth-form {
+    margin: 0 auto;
+    padding: 28px 0;
+  }
+  .auth-page .auth-form > p {
+    overflow-wrap: anywhere;
+  }
+  .auth-page .otp-boxes input {
+    height: 52px;
+    font-size: 24px;
+  }
+}

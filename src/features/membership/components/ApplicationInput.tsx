@@ -62,6 +62,8 @@ export default function ApplicationInput({
       ) : (
         <input
           id={id}
+          type={name.toLowerCase().includes("email") ? "email" : "text"}
+          autoComplete={name === "businessEmail" ? "email" : undefined}
           value={String(values[name] || "")}
           placeholder={placeholder}
           onChange={(event) => setValue(name, event.target.value)}

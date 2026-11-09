@@ -1,3 +1,4 @@
+import { profilePath } from "../services/profileSeo"
 import CompanyLogo from "@/features/directory/components/CompanyLogo"
 import Button from "@/components/ui/Button"
 import Icon from "@/components/ui/Icon"
@@ -7,13 +8,7 @@ import type { View } from "@/types/View"
 import usePublicDirectory from "@/hooks/usePublicDirectory"
 import { useState } from "react"
 
-export default function Directory({
-  go,
-  onViewProfile,
-}: {
-  go: (v: View) => void
-  onViewProfile: (id: string) => void
-}) {
+export default function Directory({ go }: { go: (v: View) => void }) {
   const sampleMembers = usePublicDirectory()
   const [query, setQuery] = useState("")
   const [service, setService] = useState("All services")
@@ -53,9 +48,9 @@ export default function Directory({
             <h2>Find a member ISP</h2>
           </div>
           <p>
-            These sample profiles demonstrate the directory format and do not
-            confirm ISPAU membership. Published listings must be active,
-            eligible, approved and publication-consented.
+            {sampleMembers.some((member) => member.isPreview)
+              ? "These sample profiles demonstrate the directory format and do not confirm ISPAU membership."
+              : "Browse approved public company profiles of eligible active ISPAU members."}
           </p>
         </div>
         <div className="directory-tools">
@@ -141,12 +136,9 @@ export default function Directory({
                     </span>
                   </div>
                 </div>
-                <Button
-                  kind="secondary"
-                  onClick={() => onViewProfile(member.id)}
-                >
-                  View Company Profile
-                </Button>
+                <a className="btn btn-secondary" href={profilePath(member)}>
+                  View {member.name} profile
+                </a>
               </article>
             ))}
           </div>
