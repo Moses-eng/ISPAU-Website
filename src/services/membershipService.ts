@@ -5,10 +5,7 @@ import {
   type RecordDocumentKind,
 } from "@/features/membership/services/reports"
 import { createDemoState, refreshExampleRecords } from "@/mocks/membership"
-import {
-  applyCommand,
-  visibleApplications,
-} from "@/features/membership/services/workflow"
+import { applyCommand } from "@/features/membership/services/workflow"
 import type {
   Actor,
   Command,
@@ -72,7 +69,6 @@ export const membershipService = {
       listeners.delete(listener)
     }
   },
-  applications: (actor: Actor) => visibleApplications(state, actor),
   dispatch: (actor: Actor, command: Command) => {
     const next = applyCommand(state, actor, command)
     try {
@@ -82,11 +78,6 @@ export const membershipService = {
     }
     staffAuditService.recordChange(state, next, actor, command)
     state = next
-    notify()
-  },
-  reset: () => {
-    state = createDemoState()
-    localStorage.setItem(key, JSON.stringify(state))
     notify()
   },
 }

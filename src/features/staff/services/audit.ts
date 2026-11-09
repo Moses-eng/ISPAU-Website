@@ -7,6 +7,7 @@ import type {
 import { can, canAccessSection } from "../../../config/permissions.ts"
 
 export type AuditArea =
+  | "trade-credit"
   | "membership"
   | "finance"
   | "overview"
@@ -35,6 +36,7 @@ export type AuditEvent = {
 }
 
 export const sectionLabels: Record<string, string> = {
+  "trade-credit": "Trade Credit",
   overview: "Overview",
   membership: "Membership",
   finance: "Finance",
@@ -48,7 +50,8 @@ export const sectionLabels: Record<string, string> = {
   "membership-activity": "Membership activity",
   "finance-activity": "Finance activity",
 }
-export function auditArea(section: string): AuditArea {
+function auditArea(section: string): AuditArea {
+  if (section === "trade-credit") return "trade-credit"
   if (["billing", "finance", "finance-activity"].includes(section))
     return "finance"
   if (
@@ -76,9 +79,10 @@ export function visibleAudit(
   if (!area && !can(actor, "audit.global")) return []
   if (area === "membership" && !can(actor, "applications.review")) return []
   if (area === "finance" && !can(actor, "billing.manage")) return []
+  if (area === "trade-credit" && !can(actor, "trade-credit.review")) return []
   if (
     area &&
-    !["membership", "finance"].includes(area) &&
+    !["membership", "finance", "trade-credit"].includes(area) &&
     !can(actor, "audit.global")
   )
     return []

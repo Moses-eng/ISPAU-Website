@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useId, type ReactNode } from "react"
 export default function FormField({
   label,
   name,
@@ -17,9 +17,10 @@ export default function FormField({
   multiline?: boolean
 }) {
   let input: ReactNode
+  const fieldId = useId()
   const shared = {
     name,
-    id: `workspace-${name}`,
+    id: `workspace-${fieldId}`,
     required,
     "aria-required": required,
     defaultValue: value,

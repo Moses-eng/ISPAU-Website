@@ -21,8 +21,10 @@ export type Permission =
   | "audit.global"
   | "export.register"
   | "staff.accounts.manage"
+  | "trade-credit.review"
 
 const membership: Permission[] = [
+  "trade-credit.review",
   "overview.view",
   "applications.review",
   "members.manage",
@@ -66,6 +68,7 @@ export function canAccessSection(
     "staff-activity": ["audit.global"],
     "membership-activity": ["applications.review"],
     "finance-activity": ["billing.manage"],
+    "trade-credit": ["trade-credit.review"],
   }
   return (rules[section] || []).some((permission) => can(actor, permission))
 }

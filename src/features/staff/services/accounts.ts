@@ -1,6 +1,5 @@
 import type { Actor, StaffRole } from "../../membership/types/workspace.ts"
 import { can } from "../../../config/permissions.ts"
-
 export type StaffAccount = {
   id: string
   name: string
@@ -11,43 +10,52 @@ export type StaffAccount = {
   lastLoginAt?: string
   credentialVersion: number
 }
-export type AccountInput = {
-  name: string
+export type AccountInput = { name?: string; email: string; role: StaffRole }
+export type EmailChallenge = {
+  id: string
   email: string
-  role: StaffRole
-  temporaryPassword: string
+  expiresAt: string
+  resendAvailableAt: string
 }
-export type SetupChallenge = { id: string; email: string; expiresAt: string }
-export type LoginResult = { actor: Actor } | { challenge: SetupChallenge }
-type Secret = { salt: string; hash: string; temporaryExpiresAt?: number }
-type Challenge = SetupChallenge & {
+export type PasswordInvitation = {
+  email: string
+  expiresAt: string
+  purpose: "invitation" | "reset"
+}
+export type PreviewInvitation = PasswordInvitation & { token: string }
+export type AccountDelivery = {
+  account: StaffAccount
+  delivery: "queued"
+  previewInvitation?: PreviewInvitation
+}
+export type LoginResult = { challenge: EmailChallenge }
+type Secret = { salt: string; hash: string }
+type Challenge = EmailChallenge & {
   accountId: string
   version: number
   code: string
   attempts: number
 }
+type Invitation = PreviewInvitation & { accountId: string; version: number }
 export const accountPolicy = {
-  minimumPasswordLength: 15,
+  minimumPasswordLength: 8,
   maximumPasswordLength: 128,
-  minimumTemporaryLength: 8,
-  temporaryLifetimeMs: 86400000,
+  invitationLifetimeMs: 86400000,
   codeLifetimeMs: 600000,
+  resendCooldownMs: 30000,
   maximumCodeAttempts: 5,
 }
 const roles: StaffRole[] = ["super_admin", "membership_admin", "finance_admin"]
 const normalizeEmail = (email: string) => email.trim().toLowerCase()
-function passwordRule(password: string, temporary = false) {
-  const minimum = temporary
-    ? accountPolicy.minimumTemporaryLength
-    : accountPolicy.minimumPasswordLength
+function passwordRule(password: string) {
   if (
-    password.length < minimum ||
-    password.length > accountPolicy.maximumPasswordLength ||
-    !password.trim()
+    password.length < 8 ||
+    password.length > 128 ||
+    !/[A-Za-z]/.test(password) ||
+    !/[0-9]/.test(password) ||
+    !/[^A-Za-z0-9\s]/.test(password)
   )
-    throw Error(
-      `Use ${minimum} to ${accountPolicy.maximumPasswordLength} characters for ${temporary ? "the temporary" : "your new"} password.`,
-    )
+    throw Error("Use 8–128 characters with a letter, a number and a symbol.")
 }
 async function hashPassword(
   password: string,
@@ -83,16 +91,15 @@ const identity = (a: StaffAccount): Actor => ({
   kind: "staff",
   roles: [a.role],
 })
-
-// Development adapter only. Password material and verification codes stay in memory.
+// UI development adapter only. Credentials, invitation links and OTPs stay in memory.
 export function createLocalAccounts(
   now = () => Date.now(),
-  options: { skipEmailVerification?: boolean } = {},
+  options: { previewCode?: string } = {},
 ) {
   let accounts: StaffAccount[] = []
   const secrets = new Map<string, Secret>(),
-    challenges = new Map<string, Challenge>()
-  const mailbox = new Map<string, string>()
+    challenges = new Map<string, Challenge>(),
+    invitations = new Map<string, Invitation>()
   let ready: Promise<void> | undefined
   const boot = () =>
     (ready ??= (async () => {
@@ -130,27 +137,86 @@ export function createLocalAccounts(
   const revokeChallenges = (id: string) => {
     for (const [key, value] of challenges)
       if (value.accountId === id) challenges.delete(key)
+    for (const [key, value] of invitations)
+      if (value.accountId === id) invitations.delete(key)
   }
-  const makeChallenge = (a: StaffAccount): SetupChallenge => {
-    revokeChallenges(a.id)
-    const bytes = crypto.getRandomValues(new Uint32Array(1))
-    const code = String(bytes[0] % 1000000).padStart(6, "0")
+  const makeInvitation = (
+    account: StaffAccount,
+    purpose: PasswordInvitation["purpose"],
+  ): AccountDelivery => {
+    revokeChallenges(account.id)
+    const invitation: Invitation = {
+      token: crypto.randomUUID() + crypto.randomUUID(),
+      email: account.email,
+      expiresAt: new Date(
+        now() + accountPolicy.invitationLifetimeMs,
+      ).toISOString(),
+      purpose,
+      accountId: account.id,
+      version: account.credentialVersion,
+    }
+    invitations.set(invitation.token, invitation)
+    const { token, email, expiresAt } = invitation
+    return {
+      account: structuredClone(account),
+      delivery: "queued",
+      previewInvitation: { token, email, expiresAt, purpose },
+    }
+  }
+  const getInvitation = (token: string) => {
+    const invitation = invitations.get(token)
+    if (!invitation || Date.parse(invitation.expiresAt) <= now())
+      throw Error(
+        "This link has expired or has already been used. Ask your Super Admin for a new invitation.",
+      )
+    const account = accountById(invitation.accountId)
+    if (
+      account.credentialVersion !== invitation.version ||
+      account.status !== "Setup required"
+    )
+      throw Error(
+        "This invitation is no longer valid. Ask your Super Admin for a new link.",
+      )
+    return { invitation, account }
+  }
+  const makeChallenge = (account: StaffAccount): LoginResult => {
+    for (const [id, challenge] of challenges)
+      if (challenge.accountId === account.id) challenges.delete(id)
     const challenge: Challenge = {
       id: crypto.randomUUID(),
-      email: a.email,
+      accountId: account.id,
+      version: account.credentialVersion,
+      email: account.email,
+      code:
+        options.previewCode ||
+        String(
+          crypto.getRandomValues(new Uint32Array(1))[0] % 1000000,
+        ).padStart(6, "0"),
       expiresAt: new Date(now() + accountPolicy.codeLifetimeMs).toISOString(),
-      accountId: a.id,
-      version: a.credentialVersion,
-      code,
+      resendAvailableAt: new Date(
+        now() + accountPolicy.resendCooldownMs,
+      ).toISOString(),
       attempts: 0,
     }
     challenges.set(challenge.id, challenge)
-    mailbox.set(challenge.id, code)
-    return {
-      id: challenge.id,
-      email: challenge.email,
-      expiresAt: challenge.expiresAt,
-    }
+    const { id, email, expiresAt, resendAvailableAt } = challenge
+    return { challenge: { id, email, expiresAt, resendAvailableAt } }
+  }
+  const getChallenge = (id: string) => {
+    const challenge = challenges.get(id)
+    if (
+      !challenge ||
+      Date.parse(challenge.expiresAt) <= now() ||
+      challenge.attempts >= accountPolicy.maximumCodeAttempts
+    )
+      throw Error("This code has expired. Sign in again to request a new code.")
+    const account = accountById(challenge.accountId)
+    if (
+      account.status !== "Active" ||
+      account.credentialVersion !== challenge.version
+    )
+      throw Error("This login request is no longer valid. Sign in again.")
+    return { challenge, account }
   }
   return {
     async list(actor: Actor) {
@@ -163,35 +229,47 @@ export function createLocalAccounts(
       requireManager(actor)
       const email = normalizeEmail(input.email)
       if (
-        !input.name.trim() ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
         !roles.includes(input.role)
       )
-        throw Error("Enter a name, valid email and administrator role.")
+        throw Error("Enter a valid email and administrator role.")
       if (accounts.some((a) => a.email === email && a.status !== "Removed"))
         throw Error("This email already belongs to an administrator account.")
-      passwordRule(input.temporaryPassword, true)
-      const secret = await hashPassword(input.temporaryPassword)
       const account: StaffAccount = {
         id: crypto.randomUUID(),
-        name: input.name.trim(),
+        name: input.name?.trim() || email.split("@")[0],
         email,
         role: input.role,
         status: "Setup required",
         createdAt: new Date(now()).toISOString(),
         credentialVersion: 1,
       }
-      secrets.set(account.id, {
-        ...secret,
-        temporaryExpiresAt: now() + accountPolicy.temporaryLifetimeMs,
-      })
       accounts = [...accounts, account]
+      return makeInvitation(account, "invitation")
+    },
+    async invitation(token: string): Promise<PasswordInvitation> {
+      const { invitation } = getInvitation(token)
+      return {
+        email: invitation.email,
+        expiresAt: invitation.expiresAt,
+        purpose: invitation.purpose,
+      }
+    },
+    async completeSetup(token: string, password: string) {
+      const { invitation, account } = getInvitation(token)
+      passwordRule(password)
+      const secret = await hashPassword(password)
+      getInvitation(token)
+      secrets.set(account.id, secret)
+      account.status = "Active"
+      account.credentialVersion = invitation.version + 1
+      revokeChallenges(account.id)
       return structuredClone(account)
     },
     async login(email: string, password: string): Promise<LoginResult> {
       await boot()
       const account = accounts.find(
-        (a) => a.email === normalizeEmail(email) && a.status !== "Removed",
+        (a) => a.email === normalizeEmail(email) && a.status === "Active",
       )
       const secret = account && secrets.get(account.id)
       const candidate = await hashPassword(
@@ -202,69 +280,38 @@ export function createLocalAccounts(
         !account ||
         !secret ||
         secret.hash !== candidate.hash ||
-        (secret.temporaryExpiresAt && secret.temporaryExpiresAt <= now())
+        account.status !== "Active" ||
+        secrets.get(account.id) !== secret
       )
         throw Error("Email or password is incorrect, or access is unavailable.")
-      if (account.status === "Setup required")
-        return { challenge: makeChallenge(account) }
-      account.lastLoginAt = new Date(now()).toISOString()
-      return { actor: identity(account) }
+      return makeChallenge(account)
     },
-    async completeSetup(id: string, code: string, password: string) {
-      const challenge = challenges.get(id)
-      if (
-        !challenge ||
-        (!options.skipEmailVerification &&
-          (Date.parse(challenge.expiresAt) <= now() ||
-            challenge.attempts >= accountPolicy.maximumCodeAttempts))
-      )
-        throw Error(
-          "The verification code has expired. Sign in again to request another code.",
-        )
-      const account = accountById(challenge.accountId)
-      if (
-        account.credentialVersion !== challenge.version ||
-        account.status !== "Setup required"
-      )
-        throw Error("This setup request is no longer valid. Sign in again.")
-      if (!options.skipEmailVerification && code.trim() !== challenge.code) {
+    async verifyLogin(id: string, code: string) {
+      const { challenge, account } = getChallenge(id)
+      if (code.trim() !== challenge.code) {
         challenge.attempts++
         throw Error("The verification code is incorrect.")
       }
-      passwordRule(password)
-      const previous = secrets.get(account.id)!
-      if ((await hashPassword(password, previous.salt)).hash === previous.hash)
-        throw Error(
-          "Choose a private password different from the temporary password.",
-        )
-      const secret = await hashPassword(password)
-      if (
-        account.status !== "Setup required" ||
-        account.credentialVersion !== challenge.version
-      )
-        throw Error("This setup request is no longer valid.")
-      secrets.set(account.id, secret)
-      account.status = "Active"
-      account.credentialVersion++
-      revokeChallenges(account.id)
-      mailbox.delete(id)
-      return structuredClone(account)
+      challenges.delete(id)
+      account.lastLoginAt = new Date(now()).toISOString()
+      return { actor: identity(account) }
     },
-    async reset(actor: Actor, id: string, temporaryPassword: string) {
+    async resendLogin(id: string) {
+      const { challenge, account } = getChallenge(id)
+      if (Date.parse(challenge.resendAvailableAt) > now())
+        throw Error("Please wait before requesting another code.")
+      return makeChallenge(account)
+    },
+    async reset(actor: Actor, id: string) {
       await boot()
       requireManager(actor)
       const account = accountById(id)
       if (id === actor.id)
         throw Error("Use Change your password for your own account.")
-      passwordRule(temporaryPassword, true)
-      secrets.set(id, {
-        ...(await hashPassword(temporaryPassword)),
-        temporaryExpiresAt: now() + accountPolicy.temporaryLifetimeMs,
-      })
       account.status = "Setup required"
       account.credentialVersion++
-      revokeChallenges(id)
-      return structuredClone(account)
+      secrets.delete(id)
+      return makeInvitation(account, "reset")
     },
     async update(
       actor: Actor,
@@ -362,9 +409,6 @@ export function createLocalAccounts(
     async version(id: string) {
       await boot()
       return accountById(id).credentialVersion
-    },
-    codeForPreview(id: string) {
-      return mailbox.get(id)
     },
   }
 }

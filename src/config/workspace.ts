@@ -1,6 +1,6 @@
 import type { Actor, StaffRole } from "@/features/membership/types/workspace"
 export const workspaceFlags = {
-  tradeCreditEnabled: false,
+  tradeCreditEnabled: true,
   publicTradeCreditEnabled: false,
   demonstrationMode: true,
 } as const
@@ -37,16 +37,17 @@ export const verificationLabels = [
 export const tierOptions = ["Platinum", "Silver", "Associate", "Affiliate"]
 export { can } from "./permissions.ts"
 export const staffSections = [
-  { id: "overview", label: "Overview", icon: "chart" },
-  { id: "applications", label: "Applications", icon: "file" },
-  { id: "members", label: "Members", icon: "building" },
-  { id: "billing", label: "Billing", icon: "file" },
-  { id: "communications", label: "Communications", icon: "mail" },
-  { id: "membership-activity", label: "Activity history", icon: "file" },
-  { id: "finance-activity", label: "Activity history", icon: "file" },
-  { id: "reports", label: "Reports", icon: "chart" },
-  { id: "administration", label: "Administration", icon: "shield" },
-  { id: "staff-activity", label: "Staff activity", icon: "file" },
+  { id: "overview", label: "Overview" },
+  { id: "applications", label: "Applications" },
+  { id: "members", label: "Members" },
+  { id: "billing", label: "Billing" },
+  { id: "trade-credit", label: "Trade Credit" },
+  { id: "communications", label: "Communications" },
+  { id: "membership-activity", label: "Activity history" },
+  { id: "finance-activity", label: "Activity history" },
+  { id: "reports", label: "Reports" },
+  { id: "administration", label: "Administration" },
+  { id: "staff-activity", label: "Staff activity" },
 ] as const
 
 export function staffGroup(section: string) {
@@ -65,6 +66,7 @@ export const staffNavigation = [
   { id: "overview", label: "Overview", icon: "chart" },
   { id: "membership", label: "Membership", icon: "building" },
   { id: "finance", label: "Finance", icon: "file" },
+  { id: "trade-credit", label: "Trade Credit", icon: "file" },
   { id: "reports", label: "Reports", icon: "chart" },
   { id: "staff-activity", label: "Staff activity", icon: "file" },
   { id: "administration", label: "Administration", icon: "lock" },

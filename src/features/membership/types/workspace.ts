@@ -26,7 +26,7 @@ export type FileRecord = {
   type: string
   category: string
 }
-export type PublicProfile = {
+type PublicProfile = {
   name: string
   description: string
   services: string

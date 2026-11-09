@@ -123,7 +123,6 @@ export default function Overview({
           <div className="workspace-summary" key={s.label}>
             <span>{s.label}</span>
             <strong>{s.count}</strong>
-            <small>From the current application records</small>
           </div>
         ))}
       </div>

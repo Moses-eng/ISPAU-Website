@@ -36,11 +36,6 @@
   border-color: #ddb9c3;
   background: white;
 }
-.button-row {
-  @apply flex items-center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
 .tag {
   display: inline-flex;
   align-items: center;

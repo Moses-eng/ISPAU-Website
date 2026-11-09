@@ -5,14 +5,16 @@ import {
   type StaffAccount,
   type AccountInput,
   type LoginResult,
-  type SetupChallenge,
+  type EmailChallenge,
+  type PasswordInvitation,
+  type AccountDelivery,
 } from "@/features/staff/services/accounts"
 import type { Actor, StaffRole } from "@/features/membership/types/workspace"
 import { sessionService } from "./sessionService"
 import { staffAuditService } from "./staffAuditService"
 
 const local = localStaffAuthentication
-  ? createLocalAccounts(undefined, { skipEmailVerification: true })
+  ? createLocalAccounts(undefined, { previewCode: "123456" })
   : null
 let accounts: StaffAccount[] = []
 let csrfToken = ""
@@ -51,12 +53,15 @@ async function request<T>(
       csrfToken = ""
       notify()
     }
+    const failure = await response.json().catch(() => null)
     throw Error(
-      response.status === 401
-        ? "Email or password is incorrect, or the session has expired."
-        : response.status === 403
-          ? "This account is not authorised for this action."
-          : "The administrator service could not complete the request.",
+      failure?.error?.message ||
+        failure?.message ||
+        (response.status === 401
+          ? "Email or password is incorrect, or the session has expired."
+          : response.status === 403
+            ? "This account is not authorised for this action."
+            : "The administrator service could not complete the request."),
     )
   }
   if (response.status === 204) return undefined as T
@@ -83,7 +88,6 @@ function requireManager() {
 }
 export const staffAuthService = {
   developmentMode: localStaffAuthentication,
-  skipEmailVerification: localStaffAuthentication,
   getAccountsSnapshot: () => accounts,
   subscribe: (listener: () => void) => {
     listeners.add(listener)
@@ -91,32 +95,43 @@ export const staffAuthService = {
       listeners.delete(listener)
     }
   },
-  async login(
-    email: string,
-    password: string,
-  ): Promise<{ challenge?: SetupChallenge }> {
+  async login(email: string, password: string): Promise<LoginResult> {
     if (sessionService.getSnapshot()?.kind === "staff")
       await staffAuthService.logout()
-    if (local) {
-      const result = await local.login(email, password)
-      if ("challenge" in result) return result
-      await accept(result.actor, await local.version(result.actor.id))
-      return {}
-    }
-    const result = await request<
-      LoginResult & { accountVersion?: number; csrfToken?: string }
-    >("/auth/login", "POST", { email, password })
-    if ("challenge" in result) return result
-    await accept(result.actor, result.accountVersion || 0, result.csrfToken)
-    return {}
+    return local
+      ? local.login(email, password)
+      : request<LoginResult>("/auth/login", "POST", { email, password })
   },
-  async completeSetup(
-    challenge: SetupChallenge,
-    code: string,
-    password: string,
-  ) {
+  async verifyLogin(challenge: EmailChallenge, code: string) {
     if (local) {
-      const account = await local.completeSetup(challenge.id, code, password)
+      const result = await local.verifyLogin(challenge.id, code)
+      await accept(result.actor, await local.version(result.actor.id))
+    } else {
+      const result = await request<{
+        actor: Actor
+        accountVersion: number
+        csrfToken?: string
+      }>("/auth/login/verify", "POST", { challengeId: challenge.id, code })
+      await accept(result.actor, result.accountVersion, result.csrfToken)
+    }
+  },
+  async resendLogin(challenge: EmailChallenge): Promise<LoginResult> {
+    return local
+      ? local.resendLogin(challenge.id)
+      : request<LoginResult>("/auth/login/resend", "POST", {
+          challengeId: challenge.id,
+        })
+  },
+  async invitation(token: string): Promise<PasswordInvitation> {
+    return local
+      ? local.invitation(token)
+      : request<PasswordInvitation>("/auth/password/invitation", "POST", {
+          token,
+        })
+  },
+  async completeSetup(token: string, password: string) {
+    if (local) {
+      const account = await local.completeSetup(token, password)
       staffAuditService.recordAccount(
         {
           id: account.id,
@@ -124,15 +139,11 @@ export const staffAuthService = {
           kind: "staff",
           roles: [account.role],
         },
-        "Local testing: private password established without email verification; temporary password invalidated",
+        "Invitation accepted; private password established",
         account.id,
       )
     } else
-      await request<void>("/auth/password/setup", "POST", {
-        challengeId: challenge.id,
-        code,
-        password,
-      })
+      await request<void>("/auth/password/setup", "POST", { token, password })
   },
   async restore() {
     if (local || sessionService.getSnapshot()?.kind === "staff") return
@@ -178,19 +189,16 @@ export const staffAuthService = {
     },
   ) {
     const actor = requireManager()
-    let account: StaffAccount
+    let account!: StaffAccount
+    let delivery: AccountDelivery | undefined
     if (local) {
       if (!(await local.valid(actor, version)))
         throw Error("Your session is no longer valid. Sign in again.")
       await local.reauthenticate(actor, input.confirmationPassword)
       if (action === "create")
-        account = await local.create(actor, input as AccountInput)
+        delivery = await local.create(actor, input as AccountInput)
       else if (action === "reset")
-        account = await local.reset(
-          actor,
-          input.id!,
-          input.temporaryPassword || "",
-        )
+        delivery = await local.reset(actor, input.id!)
       else if (action === "remove")
         account = await local.remove(actor, input.id!)
       else
@@ -201,24 +209,33 @@ export const staffAuthService = {
           input.email || "",
           input.role as StaffRole,
         )
+      if (delivery) account = delivery.account
     } else {
       const path =
         action === "create"
           ? "/staff/accounts"
           : `/staff/accounts/${encodeURIComponent(input.id || "")}${action === "reset" ? "/reset-password" : ""}`
-      account = await request<StaffAccount>(
+      const result = await request<StaffAccount | AccountDelivery>(
         path,
         action === "remove" ? "DELETE" : action === "update" ? "PATCH" : "POST",
         input,
       )
+      if ("account" in result) {
+        delivery = result
+        account = result.account
+      } else account = result
     }
     staffAuditService.recordAccount(
       actor,
-      `${action === "create" ? "Administrator created" : action === "reset" ? "Temporary password reset issued; existing sessions revoked" : action === "remove" ? "Administrator access removed; audit history retained" : "Administrator name / role updated; existing sessions revoked"}: ${account.name}`,
+      `${action === "create" ? "Administrator invitation queued" : action === "reset" ? "Password reset invitation queued; existing sessions revoked" : action === "remove" ? "Administrator access removed; audit history retained" : "Administrator name / role updated; existing sessions revoked"}: ${account.name}`,
       account.id,
     )
     await staffAuthService.loadAccounts()
-    return account
+    return {
+      account,
+      delivery: delivery?.delivery,
+      previewInvitation: local ? delivery?.previewInvitation : undefined,
+    }
   },
   async changePassword(currentPassword: string, password: string) {
     const actor = sessionService.getSnapshot()
@@ -260,7 +277,6 @@ export const staffAuthService = {
         await staffAuthService.logout()
     }
   },
-  previewCode: (id: string) => local?.codeForPreview(id),
   restoreOnce() {
     return (restoring ??= staffAuthService.restore())
   },

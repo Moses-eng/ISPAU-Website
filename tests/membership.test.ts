@@ -353,9 +353,9 @@ test("private uploads reject unsupported/oversized files and retain only metadat
   assert.ok(getLocalFile(record.id))
   assert.equal(JSON.stringify(record).includes("PRIVATE-FILE-BODY"), false)
 })
-test("exports are role restricted and Trade Credit is deferred", () => {
+test("exports are role restricted and Trade Credit access is available", () => {
   const state = createDemoState()
-  assert.equal(workspaceFlags.tradeCreditEnabled, false)
+  assert.equal(workspaceFlags.tradeCreditEnabled, true)
   assert.equal(workspaceFlags.publicTradeCreditEnabled, false)
   assert.throws(
     () => buildRestrictedCsv(state, staff("finance_admin")),

@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf"
 import { autoTable } from "jspdf-autotable"
 import type { PdfDocument } from "../features/membership/services/reports.ts"
 
-export type PdfAssets = { font: string; logo: string }
+type PdfAssets = { font: string; logo: string }
 export function renderPdf(
   document: PdfDocument,
   exportedBy: string,

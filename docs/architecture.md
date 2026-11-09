@@ -30,22 +30,9 @@ The local adapter uses `workspaceSnapshot(actor)` and `dispatch(actor, command)`
 
 `staffAuthService` uses the in-memory account adapter only when `import.meta.env.DEV` is true and no `VITE_ADMIN_API_BASE` is configured. Production always uses the configured API, default `/api/admin`, with credentials included. The CSRF token is held in memory. Do not place passwords or tokens in Vite environment variables or browser storage.
 
-All administrators use one login. Super Admin can create, update, reset and remove staff access after confirming their current password. Account removal retains audit attribution. Self-removal, self-demotion and removal of the last active Super Admin are blocked. A temporary-password login cannot access the dashboard until private-password setup is complete. Local testing skips the verification code; production must verify the account holder through the server challenge. No live email service is bundled.
+All administrators use email/password followed by email OTP. Password success grants only a short-lived challenge; only successful OTP creates an authenticated staff session. Super Admin creates administrators by email and role, without temporary passwords. A single-use invitation opens password setup, then returns to sign-in with the email prefilled. Reset/resend uses a replacement invitation and revokes prior credentials, sessions and challenges. Account removal retains audit attribution. Existing account-management reauthentication and Super Admin safeguards remain.
 
-| Endpoint relative to API base             | Purpose                                                                 |
-| ----------------------------------------- | ----------------------------------------------------------------------- |
-| `POST /auth/login`                        | Accept email/password; return actor/session metadata or setup challenge |
-| `GET /auth/session`                       | Restore actor, account version and optional CSRF token                  |
-| `POST /auth/logout`                       | Revoke the current session                                              |
-| `POST /auth/password/setup`               | Verify challenge/code and establish private password                    |
-| `POST /auth/password`                     | Confirm current password and replace it                                 |
-| `GET /staff/accounts`                     | Super Admin account list                                                |
-| `POST /staff/accounts`                    | Create account with temporary password                                  |
-| `PATCH /staff/accounts/:id`               | Update permitted account details and role                               |
-| `POST /staff/accounts/:id/reset-password` | Issue temporary password and invalidate existing sessions               |
-| `DELETE /staff/accounts/:id`              | Remove access, retaining identity in audit history                      |
-
-Request and response types are defined in `staffAuthService` and `features/staff/services/accounts`. Backend responses must match those models. Use secure host-scoped HttpOnly cookies, server password hashing, CSRF protection, rate limits and one-use setup challenges. Provision the initial production Super Admin through a trusted server process. Local sample credentials are excluded from production assets.
+See [administrator invitation and login](admin-authentication.md) for exact endpoint shapes, component connection points, preview instructions and server responsibilities. No live email service is bundled; local development displays an invitation email preview and uses OTP `123456`, while production always calls the configured backend.
 
 ## Audit and exports
 
@@ -57,6 +44,8 @@ Browser-local events are not immutable. Production requires server-generated app
 
 ## Release boundary and checks
 
-`features/trade-credit/feature.ts` reserves a disabled module flag. There are no Trade Credit screens, navigation items or enabled routes. Introducing that module requires an explicit scope decision and separately authorised backend workflow.
+The pre-push cleanup on 9 November 2026 traced imports from the app, Vite configuration and tests; all remaining TypeScript files have consumers. It removed 31 obsolete CSS rules/selectors, seven unused icons, four unused theme properties, obsolete service methods and redundant authentication styles. Internal-only helpers/types no longer export unnecessary symbols. `noUnusedLocals` and `noUnusedParameters` now run with TypeScript, and the generated `.pnpm-store/` cache is ignored. Tests, PDF fonts/licence, deployment configuration and preview adapters remain because they support the current admin application.
 
-`tests/admin-boundary.test.ts` prevents public-site, ISP-portal and deferred Trade Credit screens from returning to this checkout. Other tests cover consequential workflow transitions, payment/activation separation, permissions, accounts, audit visibility and report/download scope. Run `pnpm check` before committing.
+`features/trade-credit` now provides the approved access/participation entry for Super Admin and Membership Admin. Finance is excluded. Complaint submission/review/withdrawal screens are a subsequent feature requiring separate approval. See [Trade Credit access and badges](trade-credit-access.md) for current rules and backend connection points.
+
+`tests/admin-boundary.test.ts` prevents public-site, ISP-portal and legacy Trade Credit workspace screens from returning to this checkout. Other tests cover consequential workflow transitions, payment/activation separation, permissions, accounts, audit visibility and report/download scope. Run `pnpm check` before committing.

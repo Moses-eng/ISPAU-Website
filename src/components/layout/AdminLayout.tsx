@@ -7,6 +7,9 @@ import Icon from "@/components/ui/Icon"
 import Button from "@/components/ui/Button"
 import useMediaQuery from "@/hooks/useMediaQuery"
 import type { Actor } from "@/features/membership/types/workspace"
+import CountBadge from "@/components/ui/CountBadge"
+import NotificationMenu from "@/components/dashboard/NotificationMenu"
+import type { WorkspaceAlert } from "@/features/notifications/model"
 export default function AdminLayout({
   actor,
   navigation,
@@ -14,9 +17,11 @@ export default function AdminLayout({
   onNavigate,
   onIdentity,
   children,
+  alerts = [],
 }: {
   actor: Actor
-  navigation: { id: string; label: string; icon: string }[]
+  navigation: { id: string; label: string; icon: string; count?: number }[]
+  alerts?: WorkspaceAlert[]
   current: string
   onNavigate: (id: string) => void
   onIdentity: () => void
@@ -76,6 +81,7 @@ export default function AdminLayout({
             >
               <Icon name={item.icon} size={18} />
               {item.label}
+              <CountBadge count={item.count || 0} />
             </button>
           ))}
         </nav>
@@ -110,6 +116,12 @@ export default function AdminLayout({
             {navigation.find((n) => n.id === current)?.label ||
               "Application detail"}
           </span>
+          <NotificationMenu
+            key={actor.id + actor.roles.join()}
+            actorKey={`staff:${actor.id}:${actor.roles.join()}`}
+            items={alerts}
+            onNavigate={onNavigate}
+          />
           <button className="workspace-account" onClick={onIdentity}>
             <span className="workspace-avatar">
               {actor.name

@@ -1,9 +1,11 @@
+import PasswordField from "@/components/ui/PasswordField"
 import { useState, useSyncExternalStore } from "react"
 import { staffAuthService } from "@/services/staffAuthService"
 import { roleLabels } from "@/config/workspace"
 import { can } from "@/config/permissions"
+import { navigateTo } from "@/app/navigation"
 import type { Actor, StaffRole } from "@/features/membership/types/workspace"
-import type { StaffAccount } from "../services/accounts"
+import type { StaffAccount, PreviewInvitation } from "../services/accounts"
 import DataTable from "@/components/dashboard/DataTable"
 import Dialog from "@/components/dashboard/Dialog"
 import Button from "@/components/ui/Button"
@@ -14,24 +16,21 @@ export default function AccountManagement({ actor }: { actor: Actor }) {
     staffAuthService.getAccountsSnapshot,
   )
   const [intent, setIntent] = useState<
-      "create" | "reset" | "update" | "remove" | null
-    >(null),
-    [selected, setSelected] = useState<StaffAccount | null>(null),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [message, setMessage] = useState(""),
-    [temporary, setTemporary] = useState(""),
-    [issued, setIssued] = useState<{ email: string; password: string } | null>(
-      null,
-    ),
-    [visible, setVisible] = useState(false)
+    "create" | "reset" | "update" | "remove" | null
+  >(null)
+  const [selected, setSelected] = useState<StaffAccount | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  const [message, setMessage] = useState("")
+  const [issued, setIssued] = useState<{
+    email: string
+    previewInvitation?: PreviewInvitation
+  } | null>(null)
   if (!can(actor, "staff.accounts.manage")) return null
   const open = (action: typeof intent, account?: StaffAccount) => {
     setIntent(action)
     setSelected(account || null)
     setError("")
-    setTemporary("")
-    setVisible(false)
     setIssued(null)
   }
   const submit = async (form: HTMLFormElement) => {
@@ -39,25 +38,26 @@ export default function AccountManagement({ actor }: { actor: Actor }) {
     setBusy(true)
     setError("")
     try {
-      const account = await staffAuthService.manage(intent!, {
+      const result = await staffAuthService.manage(intent!, {
         id: selected?.id,
         name: String(data.get("name") || selected?.name || ""),
         email: String(data.get("email") || selected?.email || ""),
         role: String(
           data.get("role") || selected?.role || "membership_admin",
         ) as StaffRole,
-        temporaryPassword: temporary,
         confirmationPassword: String(data.get("confirmationPassword") || ""),
       })
       if (intent === "create" || intent === "reset") {
-        setIssued({ email: account.email, password: temporary })
-        setTemporary("")
+        setIssued({
+          email: result.account.email,
+          previewInvitation: result.previewInvitation,
+        })
         form.reset()
       } else {
         setIntent(null)
         setMessage(
           intent === "remove"
-            ? "Administrator access removed. Existing activity and account history are retained."
+            ? "Administrator access removed. Activity history is retained."
             : "Administrator details updated. Existing sessions must sign in again.",
         )
       }
@@ -67,15 +67,25 @@ export default function AccountManagement({ actor }: { actor: Actor }) {
       setBusy(false)
     }
   }
+  const previewSetup = async (invitation: PreviewInvitation) => {
+    setBusy(true)
+    setError("")
+    try {
+      await staffAuthService.logout()
+      navigateTo(
+        `/#/password-setup?token=${encodeURIComponent(invitation.token)}`,
+      )
+    } catch (error) {
+      setError((error as Error).message)
+      setBusy(false)
+    }
+  }
   return (
     <section className="workspace-panel">
       <div className="workspace-section-heading">
         <div>
           <h2>Administrator accounts</h2>
-          <p>
-            Create access, update roles or issue a temporary password reset.
-            Private passwords are never displayed.
-          </p>
+          <p>Invite administrators by email and assign their access.</p>
         </div>
         <Button onClick={() => open("create")}>Create administrator</Button>
       </div>
@@ -87,118 +97,126 @@ export default function AccountManagement({ actor }: { actor: Actor }) {
       <DataTable
         rows={accounts}
         label="Administrator accounts"
-        rowKey={(account) => account.id}
+        rowKey={(a) => a.id}
         columns={[
-          {
-            label: "Name",
-            cell: (account) => account.name,
-            sort: (account) => account.name,
-          },
-          {
-            label: "Login email",
-            cell: (account) => account.email,
-            sort: (account) => account.email,
-          },
-          { label: "Role", cell: (account) => roleLabels[account.role] },
+          { label: "Name", cell: (a) => a.name, sort: (a) => a.name },
+          { label: "Login email", cell: (a) => a.email, sort: (a) => a.email },
+          { label: "Role", cell: (a) => roleLabels[a.role] },
           {
             label: "Access",
-            cell: (account) =>
-              account.status === "Removed"
-                ? "Deleted - access removed"
-                : account.status,
+            cell: (a) =>
+              a.status === "Setup required"
+                ? "Invitation pending"
+                : a.status === "Removed"
+                  ? "Access removed"
+                  : a.status,
           },
           {
             label: "Last login",
-            cell: (account) =>
-              account.lastLoginAt
-                ? new Date(account.lastLoginAt).toLocaleString("en-GB", {
+            cell: (a) =>
+              a.lastLoginAt
+                ? new Date(a.lastLoginAt).toLocaleString("en-GB", {
                     timeZone: "Africa/Kampala",
                   })
-                : "Not recorded",
+                : "Not yet signed in",
           },
           {
             label: "Actions",
-            cell: (account) =>
-              account.status === "Removed" ? (
+            cell: (a) =>
+              a.status === "Removed" ? (
                 "History retained"
-              ) : account.id === actor.id ? (
+              ) : a.id === actor.id ? (
                 "Your account"
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <Button kind="ghost" onClick={() => open("update", account)}>
+                  <Button kind="ghost" onClick={() => open("update", a)}>
                     Edit
                   </Button>
-                  <Button kind="ghost" onClick={() => open("reset", account)}>
-                    Reset password
+                  <Button kind="ghost" onClick={() => open("reset", a)}>
+                    {a.status === "Setup required"
+                      ? "Resend invitation"
+                      : "Send password reset"}
                   </Button>
-                  <Button kind="ghost" onClick={() => open("remove", account)}>
-                    Delete admin
+                  <Button kind="ghost" onClick={() => open("remove", a)}>
+                    Remove access
                   </Button>
                 </div>
               ),
           },
         ]}
       />
-      <p className="workspace-help">
-        Deleting an administrator removes their access, not their audit history.
-        Login email changes require verified account recovery; they cannot
-        silently redirect reset codes to another person.
-      </p>
       {intent && (
         <Dialog
           title={
             issued
-              ? "Temporary access issued"
+              ? staffAuthService.developmentMode
+                ? "Invitation ready · preview"
+                : "Invitation queued"
               : intent === "create"
                 ? "Create administrator"
                 : intent === "reset"
-                  ? "Reset administrator password"
+                  ? "Send password setup link"
                   : intent === "update"
                     ? "Edit administrator"
-                    : "Delete administrator access"
+                    : "Remove administrator access"
           }
           onClose={() => {
             if (!busy) {
               setIntent(null)
               setIssued(null)
-              setTemporary("")
             }
           }}
         >
+          {error && (
+            <p role="alert" className="inline-error">
+              {error}
+            </p>
+          )}
           {issued ? (
             <>
-              <p>
-                Share these temporary sign-in details privately with the account
-                holder.{" "}
-                {staffAuthService.skipEmailVerification
-                  ? "During local testing they only need to set their own password; no email code is required."
-                  : "They must verify their email and set their own password before accessing the dashboard."}
+              <p role="status">
+                {staffAuthService.developmentMode
+                  ? "Preview invitation prepared for"
+                  : "A password setup email has been queued for"}{" "}
+                <strong>{issued.email}</strong>.
               </p>
-              <dl className="workspace-record">
-                <div>
-                  <dt>Email</dt>
-                  <dd>{issued.email}</dd>
-                </div>
-                <div>
-                  <dt>Temporary password</dt>
-                  <dd>
-                    <code>{issued.password}</code>
-                  </dd>
-                </div>
-              </dl>
               <p>
-                This temporary password is shown only here. It expires after 24
-                hours.{" "}
-                {!staffAuthService.skipEmailVerification &&
-                  "Email verification codes expire after 10 minutes."}
+                The administrator sets their own password, then signs in with
+                their email, password and verification code.
               </p>
+              {issued.previewInvitation && (
+                <section
+                  className="invitation-email"
+                  aria-label="Invitation email preview"
+                >
+                  <span className="eyebrow">Email preview · no email sent</span>
+                  <p>To: {issued.email}</p>
+                  <h3>You’re invited to ISPAU administration</h3>
+                  <p>
+                    Set your password to activate your administrator account.
+                  </p>
+                  <Button
+                    disabled={busy}
+                    onClick={() => void previewSetup(issued.previewInvitation!)}
+                  >
+                    Set your password
+                  </Button>
+                  <small>
+                    This link expires in 24 hours and can be used once. This
+                    preview opens in the same tab and signs you out. Reloading
+                    clears local preview accounts.
+                  </small>
+                </section>
+              )}
               <Button
+                kind="secondary"
+                disabled={busy}
                 onClick={() => {
                   setIssued(null)
                   setIntent(null)
                 }}
               >
-                Close temporary details
+                Done
               </Button>
             </>
           ) : (
@@ -209,37 +227,36 @@ export default function AccountManagement({ actor }: { actor: Actor }) {
                 void submit(event.currentTarget)
               }}
             >
-              <p>
-                {selected?.name} {selected?.email}
-              </p>
-              {error && (
-                <p role="alert" className="inline-error">
-                  {error}
-                </p>
-              )}
+              {selected && <p>{selected.email}</p>}
               {(intent === "create" || intent === "update") && (
                 <>
+                  {intent === "update" && (
+                    <label className="field">
+                      Name
+                      <input
+                        name="name"
+                        required
+                        defaultValue={selected?.name}
+                      />
+                    </label>
+                  )}
                   <label className="field">
-                    Name *
-                    <input name="name" required defaultValue={selected?.name} />
-                  </label>
-                  <label className="field">
-                    Login email *
+                    Administrator email
                     <input
-                      type="email"
                       name="email"
+                      type="email"
+                      autoComplete="off"
                       required
                       defaultValue={selected?.email}
                       readOnly={intent === "update"}
-                      autoComplete="off"
                     />
                   </label>
                   <label className="field">
-                    Role *
+                    Role
                     <select
                       name="role"
-                      required
                       defaultValue={selected?.role || "membership_admin"}
+                      required
                     >
                       {Object.entries(roleLabels).map(([role, label]) => (
                         <option key={role} value={role}>
@@ -250,61 +267,26 @@ export default function AccountManagement({ actor }: { actor: Actor }) {
                   </label>
                 </>
               )}
-              {(intent === "create" || intent === "reset") && (
-                <>
-                  <label className="field">
-                    Temporary password *
-                    <input
-                      type={visible ? "text" : "password"}
-                      autoComplete="new-password"
-                      required
-                      minLength={8}
-                      maxLength={128}
-                      value={temporary}
-                      onChange={(event) => setTemporary(event.target.value)}
-                    />
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      kind="secondary"
-                      onClick={() =>
-                        setTemporary(
-                          `Join-${crypto.randomUUID().slice(0, 8)}-${crypto.randomUUID().slice(0, 4)}`,
-                        )
-                      }
-                    >
-                      Generate temporary password
-                    </Button>
-                    <Button kind="ghost" onClick={() => setVisible(!visible)}>
-                      {visible ? "Hide" : "Show"} temporary password
-                    </Button>
-                  </div>
-                  <p className="workspace-help">
-                    A temporary password cannot open the dashboard until its
-                    owner{" "}
-                    {staffAuthService.skipEmailVerification
-                      ? "chooses a private password. Email codes are skipped during local testing."
-                      : "verifies the email and chooses a private password."}
-                    Resetting invalidates the previous password and sessions.
-                  </p>
-                </>
+              {intent === "reset" && (
+                <p>
+                  A new password setup link will be emailed to this
+                  administrator. Their previous password, sessions and
+                  invitation links will stop working.
+                </p>
               )}
               {intent === "remove" && (
                 <p>
-                  Remove this administrator’s access and invalidate their
-                  sessions? All previous login, logout, change and download
-                  records will remain available to Super Admin.
+                  Remove this administrator’s access? Their previous activity
+                  and audit history will be retained.
                 </p>
               )}
-              <label className="field">
-                Confirm with your own Super Admin password *
-                <input
-                  name="confirmationPassword"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                />
-              </label>
+              <PasswordField
+                label="Confirm your Super Admin password"
+
+                name="confirmationPassword"
+                autoComplete="current-password"
+                required
+              />
               <div className="workspace-actions">
                 <Button
                   kind="secondary"
@@ -314,15 +296,19 @@ export default function AccountManagement({ actor }: { actor: Actor }) {
                   Cancel
                 </Button>
                 <Button
-                  kind={intent === "remove" ? "danger" : "primary"}
                   type="submit"
+                  kind={intent === "remove" ? "danger" : "primary"}
                   disabled={busy}
                 >
                   {busy
                     ? "Saving…"
-                    : intent === "remove"
-                      ? "Delete administrator access"
-                      : "Confirm changes"}
+                    : intent === "create"
+                      ? "Create administrator & send invitation"
+                      : intent === "reset"
+                        ? "Send setup link"
+                        : intent === "remove"
+                          ? "Remove access"
+                          : "Save changes"}
                 </Button>
               </div>
             </form>

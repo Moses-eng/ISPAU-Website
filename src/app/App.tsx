@@ -12,11 +12,14 @@ import EmptyState from "@/components/dashboard/EmptyState"
 import Dialog from "@/components/dashboard/Dialog"
 import Button from "@/components/ui/Button"
 import { navigateTo } from "./navigation"
+import { workspaceAlerts } from "@/features/notifications/model"
+import useComplaints from "@/features/trade-credit/services/useComplaints"
 const StaffWorkspace = lazy(
   () => import("@/features/staff/pages/StaffWorkspace"),
 )
 export default function App() {
   const { state, actor } = useAdminWorkspace()
+  const { snapshot: credit } = useComplaints(actor)
   const [url, setUrl] = useState(location.pathname + location.hash)
   const [account, setAccount] = useState(false)
   const [password, setPassword] = useState(false)
@@ -58,7 +61,16 @@ export default function App() {
     navigateTo("/#/" + next)
   }
   const feedback = (text: string, error = false) => setNotice({ text, error })
-  if (!actor) return <StaffLogin onContinue={() => navigate("overview")} />
+  const invitationToken = route.startsWith("password-setup")
+    ? new URLSearchParams(route.split("?")[1]).get("token") || "invalid"
+    : ""
+  if (!actor || route.startsWith("password-setup"))
+    return (
+      <StaffLogin
+        invitationToken={invitationToken}
+        onContinue={() => navigate("overview")}
+      />
+    )
   if (actor.kind !== "staff")
     return (
       <EmptyState
@@ -69,14 +81,20 @@ export default function App() {
         }
       />
     )
-  const navigation = staffNavigation.filter((item) =>
-    canAccessSection(actor, item.id),
+  const alerts = workspaceAlerts(
+    actor,
+    state,
+    credit.records.filter((r) => !r.approved && !r.reviewOutcome),
   )
+  const navigation = staffNavigation
+    .filter((item) => canAccessSection(actor, item.id))
+    .map((item) => ({ ...item, count: alerts.counts[item.id] || 0 }))
   return (
     <AdminLayout
       key={actor.id + actor.roles.join("-")}
       actor={actor}
       navigation={navigation}
+      alerts={alerts.items}
       current={staffGroup(route.split("/")[0])}
       onNavigate={navigate}
       onIdentity={() => setAccount(true)}

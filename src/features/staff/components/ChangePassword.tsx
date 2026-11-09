@@ -1,3 +1,4 @@
+import PasswordField from "@/components/ui/PasswordField"
 import { useState } from "react"
 import Button from "@/components/ui/Button"
 import Dialog from "@/components/dashboard/Dialog"
@@ -43,37 +44,34 @@ export default function ChangePassword({ onClose }: { onClose: () => void }) {
             {error}
           </p>
         )}
-        <label className="field">
-          Current password *
-          <input
-            name="currentPassword"
-            type="password"
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        <label className="field">
-          New password *
-          <input
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            minLength={15}
-            maxLength={128}
-            required
-          />
-        </label>
-        <label className="field">
-          Confirm new password *
-          <input
-            name="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            minLength={15}
-            maxLength={128}
-            required
-          />
-        </label>
+        <PasswordField
+          label="Current password *"
+          name="currentPassword"
+
+          autoComplete="current-password"
+          required
+        />
+        <PasswordField
+          label="New password *"
+          name="password"
+
+          autoComplete="new-password"
+          minLength={8}
+          maxLength={128}
+          required
+        />
+        <PasswordField
+          label="Confirm new password *"
+          name="confirmPassword"
+
+          autoComplete="new-password"
+          minLength={8}
+          maxLength={128}
+          required
+        />
+        <small>
+          8–128 characters, including a letter, a number and a symbol.
+        </small>
         <Button type="submit" disabled={busy}>
           {busy ? "Updating…" : "Change password & sign out"}
         </Button>

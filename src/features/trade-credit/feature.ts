@@ -1,2 +1,2 @@
-// Reserved module boundary. No Trade Credit screens are shipped in this release.
-export const tradeCreditEnabled = false
+// Access and review entry are available to Super Admin and Membership Admin.
+export const tradeCreditEnabled = true

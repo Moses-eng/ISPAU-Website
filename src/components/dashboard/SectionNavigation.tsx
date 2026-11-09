@@ -11,7 +11,7 @@ export default function SectionNavigation({
   onSelect: (id: string) => void
 }) {
   return (
-    <nav aria-label={label} className="credit-tabs">
+    <nav aria-label={label} className="workspace-tabs">
       {items.map((item) => (
         <Button
           key={item.id}

@@ -174,10 +174,31 @@ export const staffAuditService = {
       ),
     )
   },
+  recordTradeCreditReview: (
+    actor: Actor,
+    recordId: string,
+    outcome: string,
+  ) => {
+    if (!can(actor, "trade-credit.review")) return
+    append({
+      id: crypto.randomUUID(),
+      sessionId: current?.id || `operation-${crypto.randomUUID()}`,
+      actorId: actor.id,
+      actorName: actor.name,
+      roles: [...actor.roles],
+      date: new Date().toISOString(),
+      kind: "change",
+      area: "trade-credit",
+      recordId,
+      summary: `Trade Credit complaint: ${outcome}.`,
+    })
+  },
   canViewArea: (actor: Actor, area: AuditArea) =>
-    area === "membership"
-      ? can(actor, "applications.review")
-      : area === "finance"
-        ? can(actor, "billing.manage")
-        : can(actor, "audit.global"),
+    area === "trade-credit"
+      ? can(actor, "trade-credit.review")
+      : area === "membership"
+        ? can(actor, "applications.review")
+        : area === "finance"
+          ? can(actor, "billing.manage")
+          : can(actor, "audit.global"),
 }

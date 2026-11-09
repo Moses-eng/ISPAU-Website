@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Button from "@/components/ui/Button"
 import EmptyState from "./EmptyState"
-export type Column<T> = {
+type Column<T> = {
   label: string
   cell: (row: T) => ReactNode
   sort?: (row: T) => string | number

@@ -1,7 +1,7 @@
 import { can, workspaceForActor } from "../../../config/permissions.ts"
 import { stages, type Actor, type WorkspaceState } from "../types/workspace.ts"
 
-export type ReportSection = {
+type ReportSection = {
   id: string
   title: string
   columns: string[]

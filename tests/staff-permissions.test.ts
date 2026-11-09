@@ -67,7 +67,7 @@ test("one capability matrix governs sections, reports and actions for all three 
   for (const role of [membership, finance]) {
     assert.equal(canAccessSection(role, "administration"), false)
     assert.equal(canAccessSection(role, "billing"), true)
-    assert.equal(canAccessSection(role, "trade-credit"), false)
+    assert.equal(canAccessSection(role, "trade-credit"), role === membership)
   }
   assert.equal(canAccessSection(finance, "applications"), false)
   assert.equal(canAccessSection(membership, "applications"), true)

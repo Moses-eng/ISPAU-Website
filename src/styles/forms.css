@@ -37,12 +37,6 @@
   color: var(--muted);
 }
 
-.field-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-}
-
 .checkbox {
   display: flex;
   align-items: flex-start;
@@ -56,12 +50,6 @@
   height: 18px;
   accent-color: var(--teal);
   flex: none;
-}
-
-@media (max-width: 720px) {
-  .field-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .field input:focus,

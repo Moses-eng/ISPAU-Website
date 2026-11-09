@@ -225,6 +225,7 @@ export default function StaffActivity({
                   {[
                     "membership",
                     "finance",
+                    "trade-credit",
                     "overview",
                     "reports",
                     "administration",

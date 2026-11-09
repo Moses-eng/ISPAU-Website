@@ -237,7 +237,7 @@ function assertIdentity(actor: Actor) {
   )
     throw Error("Your account changed. Please request the download again.")
 }
-export function triggerDownload(blob: Blob, filename: string) {
+function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob),
     link = document.createElement("a")
   link.href = url

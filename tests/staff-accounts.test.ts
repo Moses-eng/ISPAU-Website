@@ -1,6 +1,9 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { createLocalAccounts } from "../src/features/staff/services/accounts.ts"
+import {
+  createLocalAccounts,
+  accountPolicy,
+} from "../src/features/staff/services/accounts.ts"
 import type { Actor } from "../src/features/membership/types/workspace.ts"
 const admin: Actor = {
   id: "ispau-super",
@@ -9,271 +12,213 @@ const admin: Actor = {
   roles: ["super_admin"],
 }
 const input = {
-  name: "Membership officer",
   email: "membership@ispau.example",
   role: "membership_admin" as const,
-  temporaryPassword: "Join-Preview-1234",
 }
+const password = "Private-Member-2026!"
+const seedPassword = "ISPAU-Preview-2026!"
+const makeStore = () =>
+  createLocalAccounts(undefined, { previewCode: "123456" })
 
-test("explicit local-testing mode sets a private password without a code while keeping the setup gate", async () => {
-  const store = createLocalAccounts(undefined, { skipEmailVerification: true })
-  const account = await store.create(admin, input)
-  const result = await store.login(input.email, input.temporaryPassword)
-  assert.ok("challenge" in result)
-  assert.equal("actor" in result, false)
-  if (!("challenge" in result)) throw Error("Expected password setup")
-  await assert.rejects(
-    store.completeSetup(result.challenge.id, "", "short"),
-    /15/,
-  )
-  await store.completeSetup(
-    result.challenge.id,
-    "",
-    "A private local testing password",
-  )
-  const login = await store.login(
-    input.email,
-    "A private local testing password",
-  )
-  assert.ok("actor" in login)
-  if ("actor" in login) assert.equal(login.actor.id, account.id)
-  await assert.rejects(
-    store.login(input.email, input.temporaryPassword),
-    /incorrect/,
-  )
-})
-
-test("one login authenticates assigned roles; temporary credentials only grant a setup challenge", async () => {
-  const store = createLocalAccounts()
-  assert.equal((await store.list(admin)).length, 1)
+test("email-only creation issues a single-use invitation and password setup does not sign in", async () => {
+  const store = makeStore()
   const created = await store.create(admin, input)
-  assert.equal(created.status, "Setup required")
-  assert.equal(created.email, input.email)
-  const result = await store.login(
-    input.email.toUpperCase(),
-    input.temporaryPassword,
-  )
-  assert.ok("challenge" in result)
+  assert.equal(created.account.status, "Setup required")
+  assert.equal("temporaryPassword" in created, false)
+  const token = created.previewInvitation!.token
+  assert.equal((await store.invitation(token)).email, input.email)
+  await assert.rejects(store.login(input.email, "anything"), /incorrect/)
+  await assert.rejects(store.completeSetup(token, "short"), /8–128/)
+  const account = await store.completeSetup(token, password)
+  assert.equal(account.status, "Active")
+  assert.equal(account.lastLoginAt, undefined)
+  await assert.rejects(store.invitation(token), /expired|used/)
+  await assert.rejects(store.completeSetup(token, password), /expired|used/)
+  const result = await store.login(input.email.toUpperCase(), password)
   assert.equal("actor" in result, false)
-  if (!("challenge" in result)) throw Error("Expected a setup challenge")
-  assert.equal(
-    JSON.stringify(result).includes(store.codeForPreview(result.challenge.id)!),
-    false,
+  assert.ok(result.challenge)
+  const verified = await store.verifyLogin(result.challenge.id, "123456")
+  assert.deepEqual(verified.actor.roles, ["membership_admin"])
+  assert.equal(verified.actor.id, account.id)
+  assert.ok(
+    (await store.list(admin)).find((a) => a.id === account.id)?.lastLoginAt,
   )
   await assert.rejects(
-    store.completeSetup(
-      result.challenge.id,
-      "incorrect",
-      "A private member password",
-    ),
-    /incorrect/,
-  )
-  await assert.rejects(
-    store.completeSetup(
-      result.challenge.id,
-      store.codeForPreview(result.challenge.id)!,
-      input.temporaryPassword,
-    ),
-    /different/,
-  )
-  const changed = await store.completeSetup(
-    result.challenge.id,
-    store.codeForPreview(result.challenge.id)!,
-    "A private member password",
-  )
-  assert.equal(changed.status, "Active")
-  await assert.rejects(
-    store.login(input.email, input.temporaryPassword),
-    /incorrect/,
-  )
-  const login = await store.login(input.email, "A private member password")
-  assert.ok("actor" in login)
-  if (!("actor" in login)) throw Error("Expected a full identity")
-  assert.deepEqual(login.actor.roles, ["membership_admin"])
-  await assert.rejects(
-    store.completeSetup(
-      result.challenge.id,
-      "000000",
-      "Another private password",
-    ),
+    store.verifyLogin(result.challenge.id, "123456"),
     /expired/,
   )
   const metadata = JSON.stringify(await store.list(admin))
-  assert.equal(metadata.includes("A private member password"), false)
-  assert.equal(metadata.includes(input.temporaryPassword), false)
-  assert.equal(metadata.includes('"hash"'), false)
+  for (const secret of [password, token, '"hash"', '"salt"', "123456"])
+    assert.equal(metadata.includes(secret), false)
 })
 
-test("only Super Admin manages accounts; reset revokes sessions and requires email verification again", async () => {
-  const store = createLocalAccounts(),
-    account = await store.create(admin, input)
-  const login = await store.login(input.email, input.temporaryPassword)
-  if (!("challenge" in login)) throw Error("Expected setup")
-  await store.completeSetup(
-    login.challenge.id,
-    store.codeForPreview(login.challenge.id)!,
-    "A private member password",
+test("all roles including Super Admin require password then OTP", async () => {
+  const store = makeStore()
+  await assert.rejects(
+    store.login("superadmin@ispau.example", "wrong"),
+    /incorrect/,
   )
-  const actor: Actor = {
-    id: account.id,
-    name: account.name,
-    kind: "staff",
-    roles: ["membership_admin"],
+  const login = await store.login("superadmin@ispau.example", seedPassword)
+  assert.equal("actor" in login, false)
+  await assert.rejects(
+    store.verifyLogin(login.challenge.id, "000000"),
+    /incorrect/,
+  )
+  const result = await store.verifyLogin(login.challenge.id, "123456")
+  assert.deepEqual(result.actor.roles, ["super_admin"])
+  for (const role of [
+    "membership_admin",
+    "finance_admin",
+    "super_admin",
+  ] as const) {
+    const created = await store.create(admin, {
+      email: `${role}@ispau.example`,
+      role,
+    })
+    await store.completeSetup(created.previewInvitation!.token, password)
+    const pending = await store.login(created.account.email, password)
+    assert.equal("actor" in pending, false)
+    assert.deepEqual(
+      (await store.verifyLogin(pending.challenge.id, "123456")).actor.roles,
+      [role],
+    )
   }
-  const version = await store.version(account.id)
-  assert.equal(await store.valid(actor, version), true)
+})
+
+test("resend cooldown, attempt limit and expiry are enforced; old challenge cannot be reused", async () => {
+  let time = Date.parse("2026-11-09T09:00:00Z")
+  const store = createLocalAccounts(() => time, { previewCode: "123456" })
+  const first = await store.login("superadmin@ispau.example", seedPassword)
+  await assert.rejects(store.resendLogin(first.challenge.id), /wait/)
+  time += accountPolicy.resendCooldownMs
+  const second = await store.resendLogin(first.challenge.id)
+  assert.notEqual(second.challenge.id, first.challenge.id)
+  await assert.rejects(
+    store.verifyLogin(first.challenge.id, "123456"),
+    /expired/,
+  )
+  for (let attempt = 0; attempt < accountPolicy.maximumCodeAttempts; attempt++)
+    await assert.rejects(
+      store.verifyLogin(second.challenge.id, "000000"),
+      /incorrect/,
+    )
+  await assert.rejects(
+    store.verifyLogin(second.challenge.id, "123456"),
+    /expired/,
+  )
+  const third = await store.login("superadmin@ispau.example", seedPassword)
+  time += accountPolicy.codeLifetimeMs + 1
+  await assert.rejects(
+    store.verifyLogin(third.challenge.id, "123456"),
+    /expired/,
+  )
+})
+
+test("only Super Admin manages accounts; reset revokes sessions, OTPs and previous invitation links", async () => {
+  const store = makeStore()
+  const created = await store.create(admin, input)
+  const oldToken = created.previewInvitation!.token
+  const resent = await store.reset(admin, created.account.id)
+  await assert.rejects(store.completeSetup(oldToken, password), /expired/)
+  await store.completeSetup(resent.previewInvitation!.token, password)
+  const login = await store.login(input.email, password)
+  const actor = (await store.verifyLogin(login.challenge.id, "123456")).actor
+  const version = await store.version(actor.id)
   await assert.rejects(
     store.create(actor, { ...input, email: "other@ispau.example" }),
     /Super Admin/,
   )
   await assert.rejects(store.list(actor), /Super Admin/)
-  await assert.rejects(
-    store.reset(actor, admin.id, "New-temporary-123"),
-    /Super Admin/,
-  )
-  await store.reset(admin, account.id, "Reset-Preview-1234")
+  await assert.rejects(store.reset(actor, admin.id), /Super Admin/)
+  const pending = await store.login(input.email, password)
+  const reset = await store.reset(admin, actor.id)
   assert.equal(await store.valid(actor, version), false)
   await assert.rejects(
-    store.login(input.email, "A private member password"),
-    /incorrect/,
+    store.verifyLogin(pending.challenge.id, "123456"),
+    /expired/,
   )
-  const resetLogin = await store.login(input.email, "Reset-Preview-1234")
-  assert.ok("challenge" in resetLogin)
-  assert.equal("actor" in resetLogin, false)
+  await assert.rejects(store.login(input.email, password), /incorrect/)
+  await store.completeSetup(reset.previewInvitation!.token, "Replacement-2026!")
+  assert.ok((await store.login(input.email, "Replacement-2026!")).challenge)
+})
+
+test("invitations expire, duplicates are rejected and login email cannot be silently changed", async () => {
+  let time = Date.now()
+  const store = createLocalAccounts(() => time)
+  const created = await store.create(admin, input)
+  await assert.rejects(store.create(admin, input), /already belongs/)
   await assert.rejects(
-    store.reauthenticate(admin, "wrong-password"),
-    /incorrect/,
+    store.update(
+      admin,
+      created.account.id,
+      "Officer",
+      "other@ispau.example",
+      input.role,
+    ),
+    /verified account recovery/,
+  )
+  time += accountPolicy.invitationLifetimeMs + 1
+  await assert.rejects(
+    store.invitation(created.previewInvitation!.token),
+    /expired/,
+  )
+  await assert.rejects(
+    store.completeSetup(created.previewInvitation!.token, password),
+    /expired/,
   )
 })
 
-test("deleted accounts lose access while stable account identity and audit attribution remain", async () => {
-  const store = createLocalAccounts(),
-    created = await store.create(admin, input)
-  const audit = {
-    actorId: created.id,
-    actorName: created.name,
-    event: "Earlier membership review",
-  }
-  await store.remove(admin, created.id)
-  assert.equal(
-    (await store.list(admin)).find((a) => a.id === created.id)?.status,
-    "Removed",
-  )
-  assert.equal(
-    (await store.list(admin)).find((a) => a.id === audit.actorId)?.name,
-    audit.actorName,
-  )
-  assert.deepEqual(audit, {
-    actorId: created.id,
-    actorName: input.name,
-    event: "Earlier membership review",
-  })
+test("removed accounts cannot use invitations or pending login OTPs; audit identity is retained", async () => {
+  const store = makeStore()
+  const created = await store.create(admin, input)
+  await store.completeSetup(created.previewInvitation!.token, password)
+  const pending = await store.login(input.email, password)
+  await store.remove(admin, created.account.id)
   await assert.rejects(
-    store.login(input.email, input.temporaryPassword),
-    /incorrect/,
+    store.verifyLogin(pending.challenge.id, "123456"),
+    /expired/,
   )
-  await assert.rejects(
-    store.reset(admin, created.id, "Reset-Preview-1234"),
-    /unavailable/,
-  )
-  const replacement = await store.create(admin, input)
-  assert.notEqual(replacement.id, created.id)
-  assert.equal(
-    (await store.list(admin)).find((a) => a.id === created.id)?.status,
-    "Removed",
+  await assert.rejects(store.login(input.email, password), /incorrect/)
+  await assert.rejects(store.reset(admin, created.account.id), /unavailable/)
+  const record = (await store.list(admin)).find(
+    (a) => a.id === created.account.id,
+  )!
+  assert.equal(record.status, "Removed")
+  assert.equal(record.email, input.email)
+  assert.notEqual(
+    (await store.create(admin, input)).account.id,
+    created.account.id,
   )
   await assert.rejects(store.remove(admin, admin.id), /own account/)
 })
 
-test("email recovery cannot be silently redirected; code attempts, expiry and resets invalidate old challenges", async () => {
-  let time = Date.parse("2026-11-03T08:00:00Z")
-  const store = createLocalAccounts(() => time),
-    created = await store.create(admin, input)
+test("password changes require current password, enforce policy and revoke sessions and pending OTPs", async () => {
+  const store = makeStore()
+  const version = await store.version(admin.id)
+  const pending = await store.login("superadmin@ispau.example", seedPassword)
   await assert.rejects(
-    store.update(
-      admin,
-      created.id,
-      created.name,
-      "attacker@ispau.example",
-      created.role,
-    ),
-    /verified account recovery/,
+    store.changePassword(admin, "wrong", password),
+    /incorrect/,
   )
-  const first = await store.login(input.email, input.temporaryPassword)
-  if (!("challenge" in first)) throw Error("Expected setup")
-  const oldCode = store.codeForPreview(first.challenge.id)!
-  await store.reset(admin, created.id, "Reset-Preview-1234")
-  await assert.rejects(
-    store.completeSetup(
-      first.challenge.id,
-      oldCode,
-      "A private member password",
-    ),
-    /expired/,
-  )
-  const second = await store.login(input.email, "Reset-Preview-1234")
-  if (!("challenge" in second)) throw Error("Expected setup")
-  for (let i = 0; i < 5; i++)
+  for (const bad of [
+    "short",
+    "onlyletterslong",
+    "Numbers1234",
+    "SymbolsOnly!!!!",
+  ])
     await assert.rejects(
-      store.completeSetup(
-        second.challenge.id,
-        "wrong",
-        "A private member password",
-      ),
-      /incorrect/,
+      store.changePassword(admin, seedPassword, bad),
+      /8–128/,
     )
+  await store.changePassword(admin, seedPassword, password)
+  assert.equal(await store.valid(admin, version), false)
   await assert.rejects(
-    store.completeSetup(
-      second.challenge.id,
-      store.codeForPreview(second.challenge.id)!,
-      "A private member password",
-    ),
+    store.verifyLogin(pending.challenge.id, "123456"),
     /expired/,
   )
-  const third = await store.login(input.email, "Reset-Preview-1234")
-  if (!("challenge" in third)) throw Error("Expected setup")
-  time += 600001
   await assert.rejects(
-    store.completeSetup(
-      third.challenge.id,
-      store.codeForPreview(third.challenge.id)!,
-      "A private member password",
-    ),
-    /expired/,
-  )
-  time += 86400000
-  await assert.rejects(
-    store.login(input.email, "Reset-Preview-1234"),
+    store.login("superadmin@ispau.example", seedPassword),
     /incorrect/,
   )
-})
-
-test("a staff member changes their own password with current-password proof and old session revocation", async () => {
-  const store = createLocalAccounts()
-  const oldVersion = await store.version(admin.id)
-  await assert.rejects(
-    store.changePassword(admin, "wrong", "A new private administrator phrase"),
-    /incorrect/,
-  )
-  await assert.rejects(
-    store.changePassword(admin, "ISPAU-Preview-2026!", "short"),
-    /15/,
-  )
-  await store.changePassword(
-    admin,
-    "ISPAU-Preview-2026!",
-    "A new private administrator phrase",
-  )
-  assert.equal(await store.valid(admin, oldVersion), false)
-  await assert.rejects(
-    store.login("superadmin@ispau.example", "ISPAU-Preview-2026!"),
-    /incorrect/,
-  )
-  assert.ok(
-    "actor" in
-      (await store.login(
-        "superadmin@ispau.example",
-        "A new private administrator phrase",
-      )),
-  )
+  assert.ok((await store.login("superadmin@ispau.example", password)).challenge)
 })

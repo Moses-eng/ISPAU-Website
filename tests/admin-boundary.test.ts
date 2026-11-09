@@ -27,14 +27,14 @@ test("admin checkout excludes public and ISP application modules", () => {
   )
 })
 
-test("admin navigation groups operational sections and leaves Trade Credit inaccessible", () => {
+test("admin navigation groups operational sections and limits Trade Credit to membership reviewers", () => {
   assert.equal(staffGroup("applications"), "membership")
   assert.equal(staffGroup("communications"), "membership")
   assert.equal(staffGroup("billing"), "finance")
-  assert.equal(tradeCreditEnabled, false)
+  assert.equal(tradeCreditEnabled, true)
   assert.equal(
     staffNavigation.some((item) => item.id === "trade-credit"),
-    false,
+    true,
   )
   assert.equal(
     canAccessSection(
@@ -46,6 +46,6 @@ test("admin navigation groups operational sections and leaves Trade Credit inacc
       },
       "trade-credit",
     ),
-    false,
+    true,
   )
 })

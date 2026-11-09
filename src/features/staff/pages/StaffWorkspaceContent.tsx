@@ -14,6 +14,7 @@ import Administration from "./Administration"
 import EmptyState from "@/components/dashboard/EmptyState"
 import StaffActivity from "../components/StaffActivity"
 import { can } from "@/config/permissions"
+import TradeCreditAccess from "@/features/trade-credit/TradeCreditAccess"
 export default function StaffWorkspaceContent({
   state,
   actor,
@@ -38,6 +39,8 @@ export default function StaffWorkspaceContent({
     )
   if (section === "overview")
     return <Overview state={state} actor={actor} navigate={navigate} />
+  if (section === "trade-credit")
+    return <TradeCreditAccess state={state} actor={actor} />
   if (section === "staff-activity")
     return <StaffActivity key="global" actor={actor} />
   if (section === "membership-activity")
