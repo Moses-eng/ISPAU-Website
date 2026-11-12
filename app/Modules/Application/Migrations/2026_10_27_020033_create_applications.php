@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('entity_type')->nullable();
             $table->string('registration_country')->default('Uganda');
             $table->string('registration_reference')->nullable();
-            $table->unique('business_email');
+            $table->string('business_email')->unique();
             $table->string('business_phone', 30)->nullable();
             $table->string('website')->nullable();
 
@@ -90,3 +90,4 @@ return new class extends Migration
         Schema::dropIfExists('applications');
     }
 };
+
