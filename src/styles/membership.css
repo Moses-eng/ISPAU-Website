@@ -1,0 +1,336 @@
+/* Membership-first MVP forms and operational states */
+.required-key {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.required-key strong,
+.field b,
+.checkbox b,
+.upload-control b {
+  color: var(--burgundy-primary);
+}
+.field em,
+.checkbox em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 400;
+}
+.field-error input,
+.field-error select,
+.field-error textarea,
+.upload-control.field-error {
+  border-color: var(--danger);
+}
+.inline-error {
+  display: block;
+  color: var(--danger) !important;
+  font-weight: 600 !important;
+}
+.application-layout {
+  grid-template-columns: 350px 1fr;
+}
+.application-main {
+  max-width: 900px;
+}
+.application-stepper li {
+  min-height: 48px;
+}
+.application-stepper li:not(:last-child)::after {
+  height: 20px;
+}
+.save-unsaved {
+  color: var(--warning);
+}
+.save-failed {
+  color: var(--danger);
+}
+.error-summary {
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid #dfbec7;
+  border-left: 4px solid var(--danger);
+  background: var(--danger-bg);
+}
+.error-summary strong {
+  color: var(--danger);
+}
+.error-summary p {
+  margin: 3px 0 0;
+  font-size: 13px;
+}
+.conditional-panel {
+  padding: 20px;
+  border-left: 3px solid var(--burgundy-wine);
+  background: var(--burgundy-tint);
+  display: grid;
+  gap: 18px;
+}
+.additional-licence {
+  padding-top: 18px;
+  border-top: 1px solid #d8b7c0;
+  display: grid;
+  gap: 16px;
+}
+.upload-control {
+  min-height: 86px;
+  padding: 16px;
+  border: 1px dashed #b9959f;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+}
+.upload-control > span,
+.upload-control > span strong,
+.upload-control > span small {
+  display: block;
+}
+.upload-control > span small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.upload-state-examples {
+  display: grid;
+  gap: 10px;
+  padding-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.application-actions > div {
+  display: flex;
+  gap: 8px;
+}
+.state-preview-control {
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border: 1px dashed #b9959f;
+  background: var(--burgundy-tint);
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+}
+.state-preview-control label {
+  display: grid;
+  gap: 5px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+}
+.state-preview-control select {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  background: white;
+}
+.state-preview-control small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.applicant-links {
+  display: grid;
+}
+.applicant-links button,
+.template-list button {
+  min-height: 68px;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.applicant-links button > svg,
+.template-list button > svg {
+  color: var(--burgundy-primary);
+}
+.applicant-links span,
+.applicant-links strong,
+.applicant-links small,
+.template-list span,
+.template-list strong,
+.template-list small {
+  display: block;
+}
+.applicant-links small,
+.template-list small {
+  color: var(--muted);
+}
+.invoice-list-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr auto;
+  align-items: center;
+  gap: 30px;
+}
+.invoice-list-row > span,
+.invoice-list-row > span strong,
+.invoice-list-row > span small {
+  display: block;
+}
+.invoice-list-row > span strong {
+  margin-top: 12px;
+  font-size: 20px;
+}
+.invoice-list-row > span small {
+  color: var(--muted);
+}
+.invoice-list-row dl,
+.document-view dl,
+.payment-instructions dl,
+.activation-detail dl,
+.renewal-review dl {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px 18px;
+}
+.invoice-list-row dt,
+.document-view dt,
+.payment-instructions dt,
+.activation-detail dt,
+.renewal-review dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.invoice-list-row dd,
+.document-view dd,
+.payment-instructions dd,
+.activation-detail dd,
+.renewal-review dd {
+  margin: 0;
+  font-weight: 600;
+}
+.document-view > span {
+  display: block;
+  margin-top: 30px;
+  color: var(--burgundy-wine);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.document-view h2 {
+  margin: 10px 0 24px;
+}
+.document-total {
+  display: block;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 2px solid var(--burgundy-primary);
+  color: var(--burgundy-primary);
+  font-size: 22px;
+}
+.receipt-upload {
+  grid-template-columns: 1fr;
+  margin-top: 22px;
+}
+.payment-instructions {
+  max-width: 760px;
+}
+.payment-instructions dl {
+  margin: 26px 0;
+  padding: 22px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.activation-detail {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr auto;
+  gap: 36px;
+  align-items: center;
+}
+.activation-detail h2 {
+  margin: 10px 0 0;
+}
+.confirmation-panel {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  padding: 20px;
+  background: rgba(43, 28, 33, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.confirmation-panel > div {
+  width: min(520px, 100%);
+  padding: 28px;
+  background: white;
+  border-top: 4px solid var(--burgundy-primary);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 16px;
+}
+.confirmation-panel h2,
+.confirmation-panel p {
+  margin: 0;
+}
+.welcome-notice {
+  max-width: 740px;
+  margin: 40px auto;
+  padding: 48px;
+  border: 1px solid var(--border);
+  border-top: 5px solid var(--burgundy-primary);
+  background: white;
+  text-align: center;
+}
+.welcome-notice > .logo {
+  justify-content: center;
+  margin-bottom: 30px;
+}
+.welcome-notice h1 {
+  color: var(--burgundy-primary);
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 44px;
+}
+.editable-details {
+  display: grid;
+  gap: 22px;
+}
+.editable-details > .btn {
+  justify-self: start;
+}
+.invoice-table .tr {
+  grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 0.8fr;
+}
+.renewal-review {
+  max-width: 820px;
+  display: grid;
+  gap: 20px;
+}
+.template-preview {
+  min-height: 360px;
+}
+.template-preview h2 {
+  margin-top: 8px;
+}
+.template-preview.compact {
+  min-height: 0;
+  padding: 16px;
+  background: var(--burgundy-tint);
+}
+.comparison-panel {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.comparison-panel > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+.comparison-panel > div > span {
+  padding: 12px;
+  background: var(--burgundy-tint);
+}
+.comparison-panel small,
+.comparison-panel strong {
+  display: block;
+}
+.comparison-panel small {
+  color: var(--muted);
+}

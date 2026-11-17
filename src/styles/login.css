@@ -1,0 +1,36 @@
+.entry-choices {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.entry-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.entry-card strong {
+  color: var(--burgundy-primary);
+  font-size: 1rem;
+}
+
+.entry-card small {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.entry-card:hover,
+.entry-card:focus-visible {
+  border-color: var(--burgundy-primary);
+  box-shadow: var(--shadow);
+  outline: none;
+}

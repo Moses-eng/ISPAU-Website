@@ -1,0 +1,37 @@
+:root {
+  --burgundy-primary: #650b23;
+  --burgundy-deep: #461220;
+  --burgundy-wine: #7c2f3c;
+  --burgundy-tint: #f7f0f2;
+  --navy: var(--burgundy-primary);
+  --navy-2: var(--burgundy-deep);
+  --teal: var(--burgundy-primary);
+  --teal-dark: var(--burgundy-deep);
+  --bg: #f7f0f2;
+  --surface: #fff;
+  --text: #2b1c21;
+  --muted: #6c5960;
+  --border: #e3d6da;
+  --soft: #f7f0f2;
+  --success: #16734a;
+  --success-bg: #e8f5ee;
+  --warning: #7c2f3c;
+  --warning-bg: #f7f0f2;
+  --danger: #a43b3b;
+  --danger-bg: #fceaea;
+  --info: #650b23;
+  --info-bg: #f7f0f2;
+  --shadow: 0 12px 32px rgba(70, 18, 32, 0.1);
+  --radius: 10px;
+  --max: 1200px;
+}
+
+@theme inline {
+  --color-brand: var(--burgundy-primary);
+  --color-brand-deep: var(--burgundy-deep);
+  --color-brand-tint: var(--burgundy-tint);
+  --color-surface: var(--surface);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --font-sans: Inter, system-ui, sans-serif;
+}

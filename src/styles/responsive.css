@@ -1,0 +1,365 @@
+/* Loaded last so breakpoint rules take precedence over base layouts. */
+.header-controls {
+  @apply flex shrink-0 items-center gap-3;
+}
+.public-menu-toggle {
+  display: none;
+}
+.header-inner {
+  gap: 16px;
+}
+.header-inner > nav {
+  margin-left: auto;
+}
+.header-apply {
+  white-space: nowrap;
+}
+.public-site img {
+  max-width: 100%;
+}
+.member-logo-wrap > span {
+  max-width: 100%;
+}
+.member-logo-rail > div > span {
+  max-width: 100%;
+  margin-bottom: 12px;
+}
+.public-site section,
+.portal-main,
+.portal-content,
+.member-listing-copy {
+  min-width: 0;
+}
+.public-site p,
+.public-site a,
+.portal-main p {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .header-inner {
+    min-height: 76px;
+    padding: 0 24px;
+    gap: 12px;
+  }
+  .header-controls {
+    margin-left: auto;
+  }
+  .public-menu-toggle {
+    display: block;
+  }
+  .header-inner > nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin: 0;
+    padding: 16px 24px 24px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 18px 24px rgb(70 18 32 / 0.1);
+    max-height: min(680px, calc(100dvh - 76px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-12px);
+    transition:
+      opacity 0.22s ease,
+      transform 0.22s ease,
+      visibility 0.22s;
+  }
+  .header-inner > nav.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .header-inner nav > button {
+    text-align: left;
+    min-height: 48px;
+    border-radius: 6px;
+  }
+  .header-inner nav > button:hover {
+    background: var(--burgundy-tint);
+  }
+  .header-inner .account-menu {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  .header-inner .account-menu > button {
+    width: 100%;
+    min-height: 48px;
+    justify-content: flex-start;
+    padding: 0 10px;
+  }
+  .header-inner .account-dropdown {
+    position: static;
+    width: 100%;
+    margin: 4px 0 8px;
+    box-shadow: none;
+    border-radius: 8px;
+    background: var(--burgundy-tint);
+  }
+  .header-inner .account-dropdown::before {
+    display: none;
+  }
+  .header-inner .account-dropdown > button {
+    border-radius: 4px;
+  }
+  .header-inner .nav-actions {
+    flex-direction: column;
+    margin: 8px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .public-site .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+  .public-site .hero-copy h1 {
+    font-size: clamp(2.4rem, 4.7vw, 3.5rem);
+  }
+  .hero-carousel {
+    min-width: 0;
+  }
+  .public-site .activity-card {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+  .public-site .activity-card p {
+    grid-column: 2;
+  }
+  .public-site .activity-card .text-link {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+  .service-assurance {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+  .member-listing {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+  .portal-top {
+    gap: 12px;
+  }
+}
+@media (max-width: 720px) {
+  .header-inner {
+    min-height: 72px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .header-inner .logo img {
+    height: auto;
+    width: clamp(76px, 22vw, 110px);
+  }
+  .header-controls {
+    gap: 8px;
+  }
+  .header-apply {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: clamp(10.5px, 2.9vw, 13px);
+  }
+  .header-inner > nav {
+    padding: 12px 16px 20px;
+    max-height: calc(100dvh - 72px);
+  }
+  .public-site .hero {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 36px 18px 44px;
+    gap: 30px;
+  }
+  .public-site .hero-copy h1 {
+    font-size: clamp(2.2rem, 9vw, 3rem);
+    line-height: 1.08;
+  }
+  .public-site .hero-copy > p {
+    font-size: 16px;
+  }
+  .hero .button-row {
+    align-items: stretch;
+  }
+  .hero .button-row .btn {
+    flex: 1 1 180px;
+  }
+  .hero-carousel {
+    height: clamp(260px, 75vw, 380px);
+  }
+  .public-site .mandate-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .public-site .activity-card {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .public-site .activity-card .text-link {
+    grid-column: 2;
+    grid-row: auto;
+    justify-self: start;
+    min-height: 44px;
+  }
+  .public-site .activity-card h3 {
+    font-size: 18px;
+  }
+  .service-assurance {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .assurance-actions {
+    padding-left: 18px;
+  }
+  .page-hero-content h1 {
+    font-size: clamp(2.1rem, 9vw, 3rem);
+  }
+  .directory-link-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .member-listing {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .member-listing .member-logo-wrap > span {
+    height: 72px;
+  }
+  .member-listing > .btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .member-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .member-logo-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .member-logo-rail > div {
+    border-bottom: 1px solid var(--border);
+  }
+  .member-logo-rail > div:nth-child(odd) {
+    border-right: 1px solid var(--border);
+  }
+  .member-logo-rail > div:nth-child(even) {
+    border-right: 0;
+  }
+  .member-logo-rail > div:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+  .public-site .section-title h2 {
+    font-size: clamp(1.65rem, 7vw, 2.3rem);
+  }
+  .auth-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .auth-brand,
+  .auth-panel {
+    padding: 28px 20px;
+  }
+  .auth-brand > span {
+    margin-top: 28px;
+  }
+  .portal-main {
+    overflow-wrap: anywhere;
+  }
+  .portal-top .session-role {
+    min-width: 0;
+  }
+  .portal-top .session-role > span {
+    font-size: 11px;
+  }
+  .portal-top .sign-out {
+    min-height: 44px;
+    white-space: nowrap;
+  }
+  .portal-top .avatar {
+    display: none;
+  }
+  .application-stepper,
+  .form-main,
+  .application-main {
+    min-width: 0;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+  }
+  .tr > *,
+  .case-summary > *,
+  .stats > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .header-inner > nav {
+    transition: none;
+  }
+}
+.portal-drawer-close {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .portal-side {
+    overflow-y: auto;
+    height: 100dvh;
+    visibility: hidden;
+    transition:
+      transform 0.25s ease,
+      visibility 0.25s;
+  }
+  .portal-side.open {
+    visibility: visible;
+  }
+  .portal-drawer-close {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+  .portal-drawer-close .public-menu-toggle,
+  .portal-menu .public-menu-toggle {
+    display: block;
+  }
+  .portal-menu {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+  .portal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    background: rgb(43 28 33 / 0.45);
+    border: 0;
+    backdrop-filter: blur(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-side {
+    transition: none;
+  }
+}
+@media (max-width: 720px) {
+  .hero .button-row {
+    flex-direction: column;
+  }
+  .hero .button-row .btn {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 48px;
+  }
+}
+@media (min-width: 721px) and (max-width: 1100px) {
+  .footer-grid {
+    grid-template-columns: 1.2fr 0.8fr 1.2fr;
+    gap: 24px;
+  }
+}
