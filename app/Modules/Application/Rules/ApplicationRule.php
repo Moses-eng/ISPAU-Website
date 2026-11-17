@@ -71,7 +71,7 @@ class ApplicationRule
 
             // Uploads
             'uploads'                  => 'sometimes|array',
-            'uploads.*'                => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'uploads.*'                => 'nullable|file|mimes:pdf,jpg,jpeg,png',
 
             'status'                   => ['sometimes', Rule::in(self::STATUS_OPTIONS)],
         ];
@@ -109,7 +109,7 @@ class ApplicationRule
             'billingContact'        => 'sometimes|nullable|string|max:255',
             'invoiceAddress'        => 'sometimes|nullable|string',
             'uploads'               => 'sometimes|array',
-            'uploads.*'             => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'uploads.*'             => 'nullable|file|mimes:pdf,jpg,jpeg,png',
             'businessEmail' => [ 'required', 'email', 'max:255', Rule::unique('applications', 'business_email'),
             ],
         ];
@@ -147,9 +147,17 @@ class ApplicationRule
             'billingContact'        => 'sometimes|string|max:255',
             'invoiceAddress'        => 'sometimes|string',
             'uploads'               => 'sometimes|array',
-            'uploads.*'             => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'uploads.*'             => 'nullable|file|mimes:pdf,jpg,jpeg,png',
             'status'                => ['sometimes', Rule::in(self::STATUS_OPTIONS)],
         ];
+    }
+
+    public static function applicantUpdateRules(string $applicationId): array
+    {
+        return array_diff_key(
+            self::updateRules($applicationId),
+            array_flip(['status', 'password', 'password_confirmation']),
+        );
     }
 }
 

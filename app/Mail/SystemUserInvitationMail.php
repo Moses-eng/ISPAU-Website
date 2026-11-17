@@ -32,9 +32,8 @@ class SystemUserInvitationMail extends Mailable
         $this->appName           = config('app.name', 'ISPAU');
         $this->supportEmail      = config('mail.from.address');
 
-        // In local development, Vite SPA uses hash routing '#/administration'
-        // In production, standard route '/administration' is used
-        $frontendUrl = rtrim(config('app.frontend_url'));
+
+        $frontendUrl = rtrim(config('app.admin_password_set_up_url'));
 
         $query = http_build_query([
             'email' => $email,

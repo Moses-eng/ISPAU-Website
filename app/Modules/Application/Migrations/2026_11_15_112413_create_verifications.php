@@ -17,21 +17,14 @@ return new class extends Migration
             $table->uuid('assigned_by');
             $table->string('assigned_by_name')->nullable();
 
-            // One column per checklist item, snapshot of the dialog fields
-            $table->string('registration_result');      // Verified | Clarification needed | Not applicable
-            $table->text('registration_note');
+            $table->string('registration_result');
+            $table->json('registration_note');
             $table->string('authority_result');
-            $table->text('authority_note');
+            $table->json('authority_note');
             $table->string('regulatory_result');
-            $table->text('regulatory_note');
-
-            $table->enum('status', [
-                'Recorded',
-                'Superseded',
-            ])->default('Recorded');
+            $table->json('regulatory_note');
 
             $table->timestamp('recorded_at')->useCurrent();
-
             $table->timestamps();
 
             $table->foreign('application_id')
@@ -40,7 +33,6 @@ return new class extends Migration
 
             $table->index('application_id');
             $table->index('reviewer_id');
-            $table->index('status');
         });
     }
 

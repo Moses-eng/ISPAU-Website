@@ -10,5 +10,4 @@ interface VerificationRepositoryInterface
     public function findByApplication(string $applicationId): Collection;
     public function findById(string $id): ?VerificationModel;
     public function create(array $data): VerificationModel;
-    public function markSuperseded(string $applicationId): void;
 }

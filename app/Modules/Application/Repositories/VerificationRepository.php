@@ -28,13 +28,4 @@ class VerificationRepository implements VerificationRepositoryInterface
     {
         return $this->model->create($data);
     }
-
-    public function markSuperseded(string $applicationId): void
-    {
-        $this->model
-            ->newQuery()
-            ->where('application_id', $applicationId)
-            ->where('status', 'Recorded')
-            ->update(['status' => 'Superseded']);
-    }
 }

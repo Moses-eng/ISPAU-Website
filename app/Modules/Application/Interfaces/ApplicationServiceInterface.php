@@ -12,7 +12,7 @@ interface ApplicationServiceInterface
     public function show(string $id): ApplicationActionResponseData;
     public function create(ApplicationRequestData $data): ApplicationActionResponseData;
     public function saveDraft(ApplicationRequestData $data): ApplicationActionResponseData;
-    public function update(ApplicationModel $application, ApplicationRequestData $data): ApplicationActionResponseData;
+    public function updateStatus(ApplicationModel $application, string $status): ApplicationActionResponseData;
     public function delete(ApplicationModel $application): ApplicationActionResponseData;
     public function downloadSummaryPdf(string $id);
 }

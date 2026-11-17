@@ -2,11 +2,12 @@
 
 namespace App\Modules\Application\Models;
 
+use App\Modules\Tier\Models\TierModel;
 use App\Providers\JwtAuthenticatable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Support\Str;
 class ApplicationModel extends JwtAuthenticatable
 {
     use HasUuids;
@@ -138,5 +139,29 @@ class ApplicationModel extends JwtAuthenticatable
     {
         $this->otp_attempts = ($this->otp_attempts ?? 0) + 1;
         $this->save();
+    }
+
+        /**
+     * Formats the requested tier as "Name -- USD Cost" (e.g. "Gold -- USD 900.00").
+     */
+    public function getRequestedTierDisplay(?array $tierMap = null): ?string
+    {
+        if (! $this->requested_tier) {
+            return null;
+        }
+
+        // Quick lookup from pre-fetched map (prevents N+1 queries on lists)
+        if ($tierMap && isset($tierMap[$this->requested_tier])) {
+            return $tierMap[$this->requested_tier];
+        }
+
+        // Find tier either by UUID or by Name
+        $tier = Str::isUuid($this->requested_tier)
+            ? TierModel::find($this->requested_tier)
+            : TierModel::where('name', $this->requested_tier)->first();
+
+        return $tier
+            ? "{$tier->name} -- USD {$tier->cost}"
+            : $this->requested_tier;
     }
 }

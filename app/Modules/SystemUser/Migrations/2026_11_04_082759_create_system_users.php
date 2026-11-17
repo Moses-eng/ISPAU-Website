@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password');
 
-            $table->enum('role', ['super_admin', 'finance_admin', 'membership_admin'])->default('membership_admin');
+            $table->enum('role', ['super_admin', 'finance_admin','operations_officer', 'membership_admin'])->default('membership_admin');
 
             $table->boolean('is_active')->default(true);
 

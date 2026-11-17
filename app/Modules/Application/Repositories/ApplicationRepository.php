@@ -60,7 +60,6 @@ class ApplicationRepository implements ApplicationRepositoryInterface
     {
         return $this->model->find($id);
     }
-
     public function create(array $data): ApplicationModel
     {
         return $this->model->create($data);

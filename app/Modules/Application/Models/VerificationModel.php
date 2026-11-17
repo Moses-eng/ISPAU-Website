@@ -24,12 +24,14 @@ class VerificationModel extends Model
         'authority_note',
         'regulatory_result',
         'regulatory_note',
-        'status',
         'recorded_at',
     ];
 
     protected $casts = [
-        'recorded_at' => 'datetime',
+        'recorded_at'         => 'datetime',
+        'registration_note'   => 'array',
+        'authority_note'      => 'array',
+        'regulatory_note'     => 'array',
     ];
 
     public function application(): BelongsTo

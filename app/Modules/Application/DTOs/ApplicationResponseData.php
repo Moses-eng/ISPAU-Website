@@ -14,10 +14,8 @@ class ApplicationResponseData
         public readonly ?string $updated_at = null,
     ) {}
 
-    public static function fromModel(ApplicationModel $m): self
+    public static function fromModel(ApplicationModel $m, ?array $tierMap = null): self
     {
-        // Eager-load the related records BEFORE building the payload.
-        // loadMissing is a no-op if they're already loaded.
         $m->loadMissing(['reviewers', 'clarifications', 'verifications']);
 
         return new self(
@@ -35,7 +33,7 @@ class ApplicationResponseData
                 'uganda_address'         => $m->uganda_address,
                 'category'               => $m->category,
                 'operational_status'     => $m->operational_status,
-                'requested_tier'         => $m->requested_tier,
+                'requested_tier'         => $m->getRequestedTierDisplay($tierMap),
                 'customer_facing'        => $m->customer_facing,
                 'pdpo_status'            => $m->pdpo_status,
                 'licence_relevant'       => $m->licence_relevant,
@@ -60,7 +58,6 @@ class ApplicationResponseData
                 'attachments'            => $m->attachments,
 
                 // --- Related records ---
-
                 'reviewers' => $m->reviewers->map(fn ($r) => [
                     'id'               => $r->id,
                     'reviewer_id'      => $r->reviewer_id,

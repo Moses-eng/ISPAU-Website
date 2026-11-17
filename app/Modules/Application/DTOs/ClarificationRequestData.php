@@ -7,16 +7,16 @@ use Illuminate\Http\Request;
 class ClarificationRequestData
 {
     public function __construct(
-        public readonly string  $applicationId,
-        public readonly string  $reviewerId,
-        public readonly string  $reviewerName,
-        public readonly string  $assignedBy,
-        public readonly ?string $assignedByName = null,
-        public readonly ?string $subject = null,
-        public readonly ?string $message = null,
-        public readonly array   $items = [],
-        public readonly ?string $response = null,
-        public readonly string  $status = 'Open',
+        public readonly string $applicationId,
+        public readonly string $reviewerId,
+        public readonly string $reviewerName,
+        public readonly string $assignedBy,
+        public readonly ?string $assignedByName,
+        public readonly string $subject,
+        public readonly string $message,
+        public readonly array $items = [],
+        public readonly ?string $applicantEmail = null,
+        public readonly ?string $applicantName = null,
     ) {}
 
     public static function fromRequest(Request $request, string $assignedBy): self
@@ -26,18 +26,15 @@ class ClarificationRequestData
             reviewerId:     (string) $request->input('reviewerId'),
             reviewerName:   (string) $request->input('reviewerName'),
             assignedBy:     $assignedBy,
-            assignedByName: $request->input('assignedByName'),
-            subject:        $request->input('subject'),
-            message:        $request->input('message'),
+            assignedByName: $request->input('assignedByName') ? (string) $request->input('assignedByName') : null,
+            subject:        (string) $request->input('subject'),
+            message:        (string) $request->input('message'),
             items:          (array) $request->input('items', []),
-            response:       $request->input('response'),
-            status:         (string) $request->input('status', 'Open'),
+            applicantEmail: $request->input('applicantEmail') ? (string) $request->input('applicantEmail') : null,
+            applicantName:  $request->input('applicantName') ? (string) $request->input('applicantName') : null,
         );
     }
 
-    /**
-     * Only the fields that are safe to persist on create/raise.
-     */
     public function toCreateArray(): array
     {
         return [
@@ -46,11 +43,11 @@ class ClarificationRequestData
             'reviewer_name'    => $this->reviewerName,
             'assigned_by'      => $this->assignedBy,
             'assigned_by_name' => $this->assignedByName,
-            'subject'          => $this->subject ?? 'Clarification requested',
-            'message'          => $this->message ?? '',
+            'subject'          => $this->subject,
+            'message'          => $this->message,
             'items'            => $this->items,
             'status'           => 'Open',
-            'requested_at'     => now(),           // ← date auto-picked
+            'requested_at'     => now(),
         ];
     }
 }

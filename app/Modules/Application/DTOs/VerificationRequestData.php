@@ -13,11 +13,11 @@ class VerificationRequestData
         public readonly string  $assignedBy,
         public readonly ?string $assignedByName,
         public readonly string  $registrationResult,
-        public readonly string  $registrationNote,
+        public readonly array   $registrationNote,
         public readonly string  $authorityResult,
-        public readonly string  $authorityNote,
+        public readonly array   $authorityNote,
         public readonly string  $regulatoryResult,
-        public readonly string  $regulatoryNote,
+        public readonly array   $regulatoryNote,
     ) {}
 
     /**
@@ -25,6 +25,9 @@ class VerificationRequestData
      *   result-0 / note-0 → registration
      *   result-1 / note-1 → authority
      *   result-2 / note-2 → regulatory
+     *
+     * Notes arrive as a newline-delimited string from the dialog and are
+     * normalised into a string array (one entry per non-empty line).
      */
     public static function fromRequest(Request $request, string $assignedBy): self
     {
@@ -35,12 +38,20 @@ class VerificationRequestData
             assignedBy:       $assignedBy,
             assignedByName:   $request->input('assignedByName'),
             registrationResult: (string) $request->input('result-0'),
-            registrationNote:   (string) $request->input('note-0'),
+            registrationNote:   self::splitNotes((string) $request->input('note-0')),
             authorityResult:    (string) $request->input('result-1'),
-            authorityNote:      (string) $request->input('note-1'),
+            authorityNote:      self::splitNotes((string) $request->input('note-1')),
             regulatoryResult:   (string) $request->input('result-2'),
-            regulatoryNote:     (string) $request->input('note-2'),
+            regulatoryNote:     self::splitNotes((string) $request->input('note-2')),
         );
+    }
+
+    private static function splitNotes(string $raw): array
+    {
+        return array_values(array_filter(
+            array_map('trim', preg_split('/\r\n|\r|\n/', $raw) ?: []),
+            static fn (string $line) => $line !== '',
+        ));
     }
 
     public function toCreateArray(): array
@@ -57,8 +68,7 @@ class VerificationRequestData
             'authority_note'      => $this->authorityNote,
             'regulatory_result'   => $this->regulatoryResult,
             'regulatory_note'     => $this->regulatoryNote,
-            'status'              => 'Recorded',
-            'recorded_at'         => now(),          // ← date auto-picked
+            'recorded_at'         => now(),
         ];
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Application\Services;
 
-use App\Modules\Application\Models\ApplicationModel;
 use App\Modules\Application\DTOs\VerificationActionResponseData;
 use App\Modules\Application\DTOs\VerificationRequestData;
 use App\Modules\Application\DTOs\VerificationResponseData;
@@ -44,33 +43,12 @@ class VerificationService implements VerificationServiceInterface
     {
         try {
             return DB::transaction(function () use ($data) {
-                $app = ApplicationModel::find($data->applicationId);
-                if (! $app) {
-                    return VerificationActionResponseData::error('Application not found.');
-                }
-
-                // A verification is immutable, but we keep a trail: any previous
-                // "Recorded" verification for this application becomes "Superseded".
-                $this->repository->markSuperseded($data->applicationId);
-
                 $verification = $this->repository->create($data->toCreateArray());
-
-                // Surface any "Clarification needed" outcomes on the application status
-                $needsClarification = in_array('Clarification needed', [
-                    $data->registrationResult,
-                    $data->authorityResult,
-                    $data->regulatoryResult,
-                ], true);
-
-                if ($needsClarification && in_array($app->status, ['Submitted', 'Under review'], true)) {
-                    $app->update(['status' => 'Clarification needed']);
-                }
 
                 Log::info('Verification recorded', [
                     'application_id'  => $data->applicationId,
                     'verification_id' => $verification->id,
                     'reviewer_id'     => $data->reviewerId,
-                    'needs_clarif'    => $needsClarification,
                 ]);
 
                 return VerificationActionResponseData::success(

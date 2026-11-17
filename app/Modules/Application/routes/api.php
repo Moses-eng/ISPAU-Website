@@ -5,6 +5,7 @@ use App\Modules\Application\Controllers\ReviewerController;
 use App\Modules\Application\Controllers\VerificationController;
 use App\Modules\Application\Controllers\ApplicantAuthController;
 use App\Modules\Application\Controllers\ApplicantProfileController;
+use App\Modules\Application\Controllers\DirectoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/public/applications')
@@ -14,6 +15,7 @@ Route::prefix('v1/public/applications')
     });
 
 Route::prefix('v1/auth/admin/applications')
+// ->middleware(['auth:system_users'])
     ->group(function () {
         Route::get   ('/list',      [ApplicationController::class, 'index']);
         Route::get   ('/show/{id}', [ApplicationController::class, 'show']);
@@ -49,8 +51,14 @@ Route::prefix('v1/public/applications/auth')->group(function () {
 
 // ---------- Applicant profile (protected) ----------
 Route::prefix('v1/auth/applicant')
-    ->middleware(['auth:applicants'])
-    ->group(function () {
-        Route::get ('/profile/show', [ApplicantProfileController::class, 'show']);
+    ->middleware(['auth:applicants'])->group(function () {
+        Route::get ('/profile/show/{id}', [ApplicantProfileController::class, 'show']);
         Route::post('/logout',       [ApplicantAuthController::class, 'logout']);
+        Route::match(['put','patch'], 'profile/update', [ApplicantProfileController::class, 'update']);
+});
+
+
+Route::prefix('v1/public/directory')->group(function () {
+    Route::get('/list',      [DirectoryController::class, 'index']);
+    Route::get('/show/{id}', [DirectoryController::class, 'show']);
 });

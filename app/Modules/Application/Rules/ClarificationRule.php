@@ -15,6 +15,9 @@ class ClarificationRule
             'message'        => 'required|string|max:5000',
             'items'          => 'sometimes|array',
             'items.*'        => 'string|max:500',
+            // Allow applicant fields from the request
+            'applicantEmail' => 'nullable|email|max:255',
+            'applicantName'  => 'nullable|string|max:255',
         ];
     }
 

@@ -53,7 +53,10 @@ class ApplicationController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $request->validate(['updateId' => 'required|uuid']);
+        $request->validate([
+            'updateId' => 'required|uuid',
+            'status'   => 'required|string|in:Draft,Submitted,Under review,Clarification needed,Decision pending,Approved awaiting payment,Active,Deferred,Declined',
+        ]);
 
         $application = ApplicationModel::find($request->input('updateId'));
         if (! $application) {
@@ -65,11 +68,9 @@ class ApplicationController extends Controller
             ], 404);
         }
 
-        $request->validate(ApplicationRule::updateRules($application->id));
-
-        $response = $this->service->update(
+        $response = $this->service->updateStatus(
             $application,
-            ApplicationRequestData::fromRequest($request, $application->status)
+            (string) $request->input('status'),
         );
 
         return response()->json($response->toArray(), $response->isSuccess() ? 200 : 400);

@@ -11,7 +11,8 @@ use App\Modules\Application\Models\ClarificationModel;
 use App\Modules\Application\RepositoryInterfaces\ClarificationRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ClarificationRequestedMail;
 class ClarificationService implements ClarificationServiceInterface
 {
     public function __construct(
@@ -50,11 +51,11 @@ class ClarificationService implements ClarificationServiceInterface
                 }
 
                 // Avoid stacking multiple unresolved requests on the same application
-                if ($this->repository->hasOpen($data->applicationId)) {
-                    return ClarificationActionResponseData::error(
-                        'An open clarification request already exists for this application.'
-                    );
-                }
+                // if ($this->repository->hasOpen($data->applicationId)) {
+                //     return ClarificationActionResponseData::error(
+                //         'An open clarification request already exists for this application.'
+                //     );
+                // }
 
                 $clarification = $this->repository->create($data->toCreateArray());
 
@@ -63,11 +64,37 @@ class ClarificationService implements ClarificationServiceInterface
                     $app->update(['status' => 'Clarification needed']);
                 }
 
-                Log::info('Clarification raised', [
-                    'application_id'  => $data->applicationId,
-                    'clarification_id'=> $clarification->id,
-                    'reviewer_id'     => $data->reviewerId,
-                    'raised_by'       => $data->assignedBy,
+                // Resolve recipient email: prioritize payload, then application records
+                $recipientEmail = $app->business_email;
+
+                $recipientName = $app->legal_name;
+
+                // Send professional email notification to the applicant
+                if ($recipientEmail) {
+                    try {
+                        Mail::to($recipientEmail, $recipientName)->send(
+                            new ClarificationRequestedMail(
+                                applicantName: $recipientName,
+                                organisationName: $app->legal_name,
+                                subjectText: $data->subject ?: 'Clarification requested',
+                                items: $data->items ?? (array) $data->message,
+                                reviewerName: $data->reviewerName ?: 'Review Team'
+                            )
+                        );
+                    } catch (\Throwable $mailError) {
+                        Log::error('Clarification notification email failed to send', [
+                            'application_id' => $app->id,
+                            'recipient'      => $recipientEmail,
+                            'error'          => $mailError->getMessage(),
+                        ]);
+                    }
+                }
+
+                Log::info('Clarification raised and email dispatched', [
+                    'application_id'   => $data->applicationId,
+                    'clarification_id' => $clarification->id,
+                    'reviewer_id'      => $data->reviewerId,
+                    'recipient_email'  => $recipientEmail,
                 ]);
 
                 return ClarificationActionResponseData::success(

@@ -2,14 +2,22 @@
 
 namespace App\Modules\Application\Services;
 
-use App\Modules\Application\Interfaces\ApplicationServiceInterface;
+use App\Helpers\AdminNotificationHelper;
+use App\Helpers\ApplicantNotificationHelper;
+use App\Mail\ApplicationDraftSavedMail;
+use App\Mail\ApplicationStatusUpdatedMail;
+use App\Mail\ApplicationSubmittedMail;
 use App\Modules\Application\DTOs\ApplicationActionResponseData;
 use App\Modules\Application\DTOs\ApplicationRequestData;
 use App\Modules\Application\DTOs\ApplicationResponseData;
+use App\Modules\Application\Interfaces\ApplicationServiceInterface;
 use App\Modules\Application\Models\ApplicationModel;
 use App\Modules\Application\RepositoryInterfaces\ApplicationRepositoryInterface;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class ApplicationService implements ApplicationServiceInterface
 {
@@ -54,8 +62,8 @@ class ApplicationService implements ApplicationServiceInterface
     public function create(ApplicationRequestData $data): ApplicationActionResponseData
     {
         try {
-            return DB::transaction(function () use ($data) {
-                // If an existing draft exists for this ID or email, update it to Submitted
+            // 1. Transaction strictly for persistence
+            $app = DB::transaction(function () use ($data) {
                 $existing = null;
                 if ($data->id) {
                     $existing = $this->repository->findById($data->id);
@@ -82,13 +90,65 @@ class ApplicationService implements ApplicationServiceInterface
                     }
                 }
 
-                Log::info('Application submitted', ['application_id' => $app->id]);
-
-                return ApplicationActionResponseData::success(
-                    message: "Application for {$app->legal_name} submitted successfully.",
-                    application: ApplicationResponseData::fromModel($app),
-                );
+                return $app;
             });
+
+            Log::info('Application submitted', ['application_id' => $app->id]);
+
+            // -------------------------------------------------------------
+            // Side-effects outside the transaction
+            // -------------------------------------------------------------
+            $applicantPortalUrl = rtrim((string) env('FRONTEND_URL', ''));
+            $adminPortalUrl     = rtrim((string) env('ADMIN_FRONTEND_URL', ''));
+
+            // 1. Email to Applicant
+            $applicantEmail = $app->business_email;
+            if ($applicantEmail) {
+                try {
+                    Mail::to($applicantEmail, $app->applicant_name ?: $app->legal_name)
+                        ->send(new ApplicationSubmittedMail(
+                            app: $app,
+                            portalUrl: $applicantPortalUrl,
+                            isInternalNotice: false
+                        ));
+                    Log::info('Applicant submission email sent', ['recipient' => $applicantEmail]);
+                } catch (\Throwable $e) {
+                    Log::error('Applicant submission email failed to send', [
+                        'application_id' => $app->id,
+                        'recipient'      => $applicantEmail,
+                        'error'          => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // 2. Email to Organisation Admin
+            $orgNotificationEmail = env('APP_NOTIFICATION_EMAIL');
+            if ($orgNotificationEmail) {
+                try {
+                    Mail::to($orgNotificationEmail)
+                        ->send(new ApplicationSubmittedMail(
+                            app: $app,
+                            portalUrl: $adminPortalUrl,
+                            isInternalNotice: true
+                        ));
+                    Log::info('Organisation notification email sent', ['recipient' => $orgNotificationEmail]);
+                } catch (\Throwable $e) {
+                    Log::error('Organisation notification email failed to send', [
+                        'application_id' => $app->id,
+                        'recipient'      => $orgNotificationEmail,
+                        'error'          => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // 3. In-App Notifications
+            ApplicantNotificationHelper::notifyApplicationSubmitted($app);
+            AdminNotificationHelper::notifyApplicationSubmitted($app);
+
+            return ApplicationActionResponseData::success(
+                message: "Application for {$app->legal_name} submitted successfully.",
+                application: ApplicationResponseData::fromModel($app),
+            );
         } catch (\Throwable $e) {
             Log::error('Application creation failed', ['error' => $e->getMessage()]);
             return ApplicationActionResponseData::error('Submission failed: ' . $e->getMessage());
@@ -98,7 +158,8 @@ class ApplicationService implements ApplicationServiceInterface
     public function saveDraft(ApplicationRequestData $data): ApplicationActionResponseData
     {
         try {
-            return DB::transaction(function () use ($data) {
+            // 1. Transaction strictly for persistence
+            $app = DB::transaction(function () use ($data) {
                 $existing = null;
                 if ($data->id) {
                     $existing = $this->repository->findById($data->id);
@@ -108,7 +169,7 @@ class ApplicationService implements ApplicationServiceInterface
                         ->first();
                 }
 
-                $payload = array_filter($data->toArray(), fn($v) => ! is_null($v));
+                $payload = array_filter($data->toArray(), fn ($v) => ! is_null($v));
                 $payload['status'] = 'Draft';
 
                 if ($existing) {
@@ -125,85 +186,100 @@ class ApplicationService implements ApplicationServiceInterface
                     }
                 }
 
-                return ApplicationActionResponseData::success(
-                    message: 'Draft saved to server successfully.',
-                    application: ApplicationResponseData::fromModel($app),
-                );
+                return $app;
             });
+
+            // 2. Email to Applicant
+            $recipientEmail = $app->business_email;
+            if ($recipientEmail) {
+                try {
+                    Mail::to($recipientEmail, $app->applicant_name ?: $app->legal_name)
+                        ->send(new ApplicationDraftSavedMail($app));
+                } catch (\Throwable $e) {
+                    Log::error('Draft confirmation email failed to send', [
+                        'application_id' => $app->id,
+                        'recipient'      => $recipientEmail,
+                        'error'          => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // 3. In-App Notifications
+            ApplicantNotificationHelper::notifyDraftSaved($app);
+            AdminNotificationHelper::notifyDraftSaved($app);
+
+            return ApplicationActionResponseData::success(
+                message: 'Draft saved to server successfully.',
+                application: ApplicationResponseData::fromModel($app),
+            );
         } catch (\Throwable $e) {
             Log::error('Draft save failed', ['error' => $e->getMessage()]);
             return ApplicationActionResponseData::error('Failed to save draft: ' . $e->getMessage());
         }
     }
 
-    public function update(ApplicationModel $application, ApplicationRequestData $data): ApplicationActionResponseData
+    public function updateStatus(ApplicationModel $application, string $status): ApplicationActionResponseData
     {
         try {
-            // Only update fields the client actually sent.
-            // Anything the request omitted (i.e. DTO value is null) is left untouched.
-            $payload = array_filter(
-                $data->toArray(),
-                fn ($value) => $value !== null
-            );
-
-            // Update on the instance, not via the repository's wholesale update,
-            // so we don't need to worry about repository semantics.
-            $application->update($payload);
+            $application->update(['status' => $status]);
             $app = $application->fresh();
 
-            if (! empty($data->uploads)) {
-                $paths = $this->attachments->storeAll($app->id, $data->uploads);
-                if (! empty($paths)) {
-                    $merged = array_merge($app->attachments ?? [], $paths);
-                    $app = $this->repository->update($app, ['attachments' => $merged]);
+            // 1. Email to Applicant
+            $recipientEmail = $app->business_email;
+            if ($recipientEmail) {
+                try {
+                    Mail::to($recipientEmail, $app->legal_name)
+                        ->send(new ApplicationStatusUpdatedMail($app, $status));
+                } catch (\Throwable $e) {
+                    Log::error('Status update email failed to send', [
+                        'application_id' => $app->id,
+                        'status'         => $status,
+                        'recipient'      => $recipientEmail,
+                        'error'          => $e->getMessage(),
+                    ]);
                 }
             }
 
+            // 2. In-App Notifications
+            ApplicantNotificationHelper::notifyStatusUpdated($app, $status);
+            AdminNotificationHelper::notifyStatusUpdated($app, $status);
+
             return ApplicationActionResponseData::success(
-                message: 'Application updated successfully.',
+                message: 'Application status updated successfully.',
                 application: ApplicationResponseData::fromModel($app),
             );
         } catch (\Throwable $e) {
-            Log::error('Application update failed', [
+            Log::error('Application status update failed', [
                 'application_id' => $application->id,
+                'status'         => $status,
                 'error'          => $e->getMessage(),
             ]);
-            return ApplicationActionResponseData::error('Failed to update application.');
-        }
-    }
-    public function update1(ApplicationModel $application, ApplicationRequestData $data): ApplicationActionResponseData
-    {
-        try {
-            $app = $this->repository->update($application, $data->toArray());
 
-            if (! empty($data->uploads)) {
-                $paths = $this->attachments->storeAll($app->id, $data->uploads);
-                if (! empty($paths)) {
-                    $merged = array_merge($app->attachments ?? [], $paths);
-                    $app = $this->repository->update($app, ['attachments' => $merged]);
-                }
-            }
-
-            return ApplicationActionResponseData::success(
-                message: 'Application updated successfully.',
-                application: ApplicationResponseData::fromModel($app),
-            );
-        } catch (\Throwable $e) {
-            Log::error('Application update failed', [
-                'application_id' => $application->id,
-                'error'          => $e->getMessage(),
-            ]);
-            return ApplicationActionResponseData::error('Failed to update application.');
+            return ApplicationActionResponseData::error('Failed to update application status.');
         }
     }
 
     public function delete(ApplicationModel $application): ApplicationActionResponseData
     {
         try {
+            $legalName      = $application->legal_name;
+            $applicantId    = $application->id;
+            $applicantName  = $application->applicant_name ?: $application->legal_name;
+            $applicantEmail = $application->business_email;
+
+            // Delete storage assets
             $this->attachments->deleteDirectory($application->id);
+
+            // In-App Admin Notification (must be called before delete if foreign key cascade exists)
+            AdminNotificationHelper::notifyApplicationDeleted($legalName, $applicantId, $applicantName, $applicantEmail);
+
+            // In-App Applicant Notification
+            ApplicantNotificationHelper::notifyApplicationDeleted($legalName, $applicantId, $applicantName);
+
+            // Delete record
             $this->repository->delete($application);
 
-            Log::info('Application deleted', ['application_id' => $application->id]);
+            Log::info('Application deleted', ['application_id' => $applicantId]);
 
             return ApplicationActionResponseData::success(
                 message: 'Application deleted successfully.',
@@ -217,6 +293,7 @@ class ApplicationService implements ApplicationServiceInterface
             return ApplicationActionResponseData::error('Failed to delete application.');
         }
     }
+
     public function downloadSummaryPdf(string $id)
     {
         $app = $this->repository->findById($id);
@@ -224,7 +301,7 @@ class ApplicationService implements ApplicationServiceInterface
             abort(404, 'Application not found.');
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.application_summary', [
+        $pdf = Pdf::loadView('pdfs.application_summary', [
             'app' => $app,
         ])
         ->setPaper('a4', 'portrait')
@@ -234,7 +311,7 @@ class ApplicationService implements ApplicationServiceInterface
             'defaultFont'          => 'sans-serif',
         ]);
 
-        $safeName = \Illuminate\Support\Str::slug($app->legal_name ?: $app->id);
+        $safeName = Str::slug($app->legal_name ?: $app->id);
         $filename = "ISPAU_Application_{$safeName}.pdf";
 
         return $pdf->download($filename);

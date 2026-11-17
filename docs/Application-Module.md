@@ -369,3 +369,5 @@ curl -X POST http://localhost:8000/api/v1/public/applications/store \
   }
 }
 ```
+
+<!-- await applicationService.update(appId, { status: "Under review" }); -->
