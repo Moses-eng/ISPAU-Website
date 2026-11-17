@@ -1,0 +1,178 @@
+import CountBadge from "@/components/ui/CountBadge"
+import { publicSiteUrl } from "@/config/deployment"
+import { roleLabels } from "@/config/workspace"
+import { useEffect, useState, type ReactNode } from "react"
+import Logo from "@/components/layout/Logo"
+import MenuToggle from "@/components/ui/MenuToggle"
+import Icon from "@/components/ui/Icon"
+import Button from "@/components/ui/Button"
+import useMediaQuery from "@/hooks/useMediaQuery"
+import type { Actor } from "@/features/membership/types/workspace"
+import NotificationMenu from "@/components/dashboard/NotificationMenu"
+
+export default function AdminLayout({
+  actor,
+  navigation,
+  current,
+  onNavigate,
+  onIdentity,
+  children,
+}: {
+  actor: Actor
+  navigation: { id: string; label: string; icon: string; count?: number }[]
+  current: string
+  onNavigate: (id: string) => void
+  onIdentity: () => void
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const compact = useMediaQuery("(max-width: 1000px)")
+
+  useEffect(() => setOpen(false), [compact, current])
+
+  useEffect(() => {
+    const fn = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false)
+    }
+    document.addEventListener("keydown", fn)
+    return () => document.removeEventListener("keydown", fn)
+  }, [])
+
+  return (
+    <div className="workspace">
+      <a
+        className="workspace-skip"
+        href="#workspace-content"
+        onClick={(event) => {
+          event.preventDefault()
+          document.getElementById("workspace-content")?.focus()
+        }}
+      >
+        Skip to workspace content
+      </a>
+
+      {open && compact && (
+        <button
+          className="workspace-backdrop"
+          aria-label="Close navigation overlay"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Navigation */}
+      <aside
+        className={`workspace-sidebar ${open ? "is-open" : ""}`}
+        inert={compact && !open}
+      >
+        <Logo
+          light
+          onClick={() => {
+            onNavigate("overview")
+          }}
+        />
+
+        <div className="workspace-sidebar-title">
+          {actor.kind === "staff" ? "ISPAU administration" : actor.name}
+        </div>
+
+        <nav id="workspace-navigation" aria-label="Workspace navigation">
+          {navigation.map((item) => (
+            <button
+              key={item.id}
+              aria-current={current === item.id ? "page" : undefined}
+              onClick={() => {
+                onNavigate(item.id)
+                setOpen(false)
+              }}
+            >
+              <Icon name={item.icon} size={18} />
+              {item.label}
+              <CountBadge count={item.count || 0} />
+            </button>
+          ))}
+        </nav>
+
+        <div className="workspace-sidebar-bottom">
+          <span>Membership services</span>
+          {publicSiteUrl && (
+            <button
+              onClick={() => {
+                location.href = publicSiteUrl || "/"
+              }}
+            >
+              ← Public website
+            </button>
+          )}
+          {compact && (
+            <Button kind="secondary" onClick={() => setOpen(false)}>
+              Close navigation
+            </Button>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="workspace-main">
+        <header className="workspace-topbar">
+          <div className="workspace-menu">
+            <MenuToggle
+              open={open}
+              onClick={() => setOpen(!open)}
+              controls="workspace-navigation"
+            />
+          </div>
+
+          <span style={{ fontWeight: 600 }}>
+            {navigation.find((n) => n.id === current)?.label ||
+              (current === "notifications"
+                ? "Admin Notifications"
+                : "Application detail")}
+          </span>
+
+          {/* Right Topbar Actions: Notification Menu + Account Profile */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "12px",
+              marginLeft: "auto",
+            }}
+          >
+            {/* Notification Bell Menu */}
+            <NotificationMenu onNavigate={onNavigate} />
+
+            {/* Account Info Button */}
+            <button className="workspace-account" onClick={onIdentity}>
+              <span className="workspace-avatar">
+                {actor.name
+                  .split(" ")
+                  .map((p) => p[0])
+                  .slice(0, 2)
+                  .join("")}
+              </span>
+              <span>
+                {actor.name}
+                <small>
+                  {actor.kind === "staff"
+                    ? actor.roles.map((role) => roleLabels[role]).join(" · ")
+                    : "ISP Account Manager"}
+                </small>
+              </span>
+              <Icon name="chevron" size={14} />
+            </button>
+          </div>
+        </header>
+
+        <main
+          id="workspace-content"
+          tabIndex={-1}
+          className="workspace-content"
+        >
+          {children}
+        </main>
+
+        <footer className="workspace-footer">ISPAU membership services</footer>
+      </div>
+    </div>
+  )
+}

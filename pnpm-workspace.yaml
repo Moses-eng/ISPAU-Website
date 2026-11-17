@@ -1,0 +1,4 @@
+ignoredBuiltDependencies:
+  - core-js
+allowBuilds:
+  core-js: false
