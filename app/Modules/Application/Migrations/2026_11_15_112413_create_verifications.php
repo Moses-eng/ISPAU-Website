@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('verifications', function (Blueprint $table) {
+        Schema::create('app_verifications', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
             $table->uuid('application_id');
@@ -38,6 +38,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('verifications');
+        Schema::dropIfExists('app_verifications');
     }
 };

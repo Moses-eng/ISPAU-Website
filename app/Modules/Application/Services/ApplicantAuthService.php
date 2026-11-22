@@ -55,39 +55,39 @@ class ApplicantAuthService
         $ttl  = (int) config('applicant_otp.ttl_minutes', 10);
         $code = $application->generateOtp($ttl);
 
-        // try {
-        //     Mail::to($application->business_email)->send(
-        //         new ApplicantOtpMail(
-        //             code:             $code,
-        //             applicantName:    $application->applicant_name ?: 'Applicant',
-        //             organisationName: $application->legal_name ?: 'your organisation',
-        //             ttlMinutes:       $ttl,
-        //         )
-        //     );
-        // } catch (\Throwable $e) {
-        //     Log::error('Applicant OTP email failed', [
-        //         'application_id' => $application->id,
-        //         'error'          => $e->getMessage(),
-        //     ]);
-        //     // Don't leak failure details to the caller
-        //     return ApplicantLoginResponseData::error(
-        //         'We could not send the code right now. Please try again shortly.'
-        //     );
-        // }
+        try {
+            Mail::to($application->business_email)->send(
+                new ApplicantOtpMail(
+                    code:             $code,
+                    applicantName:    $application->applicant_name ?: 'Applicant',
+                    organisationName: $application->legal_name ?: 'your organisation',
+                    ttlMinutes:       $ttl,
+                )
+            );
+        } catch (\Throwable $e) {
+            Log::error('Applicant OTP email failed', [
+                'application_id' => $application->id,
+                'error'          => $e->getMessage(),
+            ]);
+            // Don't leak failure details to the caller
+            return ApplicantLoginResponseData::error(
+                'We could not send the code right now. Please try again shortly.'
+            );
+        }
 
-        // if (app()->environment('local')) {
-        //     Log::info('Applicant OTP issued (local only)', [
-        //         'application_id' => $application->id,
-        //         'email'          => $application->business_email,
-        //         'code'           => $code,
-        //     ]);
-        // }
-
-        Log::info('Applicant OTP issued (local only)', [
+        if (app()->environment('local')) {
+            Log::info('Applicant OTP issued (local only)', [
                 'application_id' => $application->id,
                 'email'          => $application->business_email,
                 'code'           => $code,
             ]);
+        }
+
+        // Log::info('Applicant OTP issued (local only)', [
+        //         'application_id' => $application->id,
+        //         'email'          => $application->business_email,
+        //         'code'           => $code,
+        //     ]);
 
         return ApplicantLoginResponseData::success(
             message: "A login code has been sent to {$this->maskEmail($application->business_email)}.",

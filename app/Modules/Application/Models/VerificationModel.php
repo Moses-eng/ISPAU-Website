@@ -10,7 +10,7 @@ class VerificationModel extends Model
 {
     use HasUuids;
 
-    protected $table = 'verifications';
+    protected $table = 'app_verifications';
 
     protected $fillable = [
         'application_id',

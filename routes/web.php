@@ -10,7 +10,6 @@ Route::get('/migrate', function(){
 });
 
 
-
 // Cache Management Routes
 Route::get('/config-cache', function() {
     Artisan::call('config:cache');
@@ -39,3 +38,4 @@ Route::get('/clear-all', function() {
     Artisan::call('route:clear');
     return 'All caches cleared!';
 });
+
