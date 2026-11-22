@@ -2,14 +2,19 @@
 
 namespace App\Modules\Contact\Services;
 
-use App\Modules\Contact\Interfaces\ContactServiceInterface;
+use App\Helpers\AdminNotificationHelper;
+use App\Mail\ContactSubmittedMail;
 use App\Modules\Contact\DTOs\ContactActionResponseData;
 use App\Modules\Contact\DTOs\ContactRequestData;
 use App\Modules\Contact\DTOs\ContactResponseData;
+use App\Modules\Contact\Interfaces\ContactServiceInterface;
 use App\Modules\Contact\Models\ContactModel;
 use App\Modules\Contact\RepositoryInterfaces\ContactRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Helpers\MembershipAdminNotificationHelper;
+use App\Helpers\OperationsOfficerAdminNotificationHelper;
 
 class ContactService implements ContactServiceInterface
 {
@@ -66,16 +71,89 @@ class ContactService implements ContactServiceInterface
     public function create(ContactRequestData $data): ContactActionResponseData
     {
         try {
-            return DB::transaction(function () use ($data) {
-                $contact = $this->repository->create($data->toArray());
-
-                Log::info('Contact created', ['contact_id' => $contact->id]);
-
-                return ContactActionResponseData::success(
-                    message: "Contact from {$contact->name} created successfully.",
-                    contact: ContactResponseData::fromModel($contact),
-                );
+            // 1. Transaction strictly for persistence
+            $contact = DB::transaction(function () use ($data) {
+                return $this->repository->create($data->toArray());
             });
+
+            Log::info('Contact enquiry created successfully', ['contact_id' => $contact->id]);
+
+            // -------------------------------------------------------------
+            // Side-effects outside the transaction
+            // -------------------------------------------------------------
+            $frontendUrl    = rtrim((string) env('FRONTEND_URL', ''));
+            $adminPortalUrl = rtrim((string) env('ADMIN_FRONTEND_URL', ''));
+
+            // 1. Send confirmation email to the User
+            if (! empty($contact->work_email)) {
+                try {
+                    Mail::to($contact->work_email, $contact->name)
+                        ->send(new ContactSubmittedMail(
+                            contact: $contact,
+                            portalUrl: $frontendUrl,
+                            isInternalNotice: false
+                        ));
+                    Log::info('Contact confirmation email sent to user', [
+                        'contact_id' => $contact->id,
+                        'recipient'  => $contact->work_email,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error('Contact confirmation email failed to send', [
+                        'contact_id' => $contact->id,
+                        'recipient'  => $contact->work_email,
+                        'error'      => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // 2. Send notification email to Admin / Organisation
+            $orgNotificationEmail = env('APP_NOTIFICATION_EMAIL', config('mail.from.address'));
+            if ($orgNotificationEmail) {
+                try {
+                    Mail::to($orgNotificationEmail)
+                        ->send(new ContactSubmittedMail(
+                            contact: $contact,
+                            portalUrl: $adminPortalUrl,
+                            isInternalNotice: true
+                        ));
+                    Log::info('Contact alert email sent to organisation admin', [
+                        'contact_id' => $contact->id,
+                        'recipient'  => $orgNotificationEmail,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error('Contact admin notification email failed to send', [
+                        'contact_id' => $contact->id,
+                        'recipient'  => $orgNotificationEmail,
+                        'error'      => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // 3. Create Admin in-app notification via AdminNotificationHelper
+            try {
+                $orgLabel = $contact->organisation ? " ({$contact->organisation})" : '';
+                AdminNotificationHelper::createNotification(
+                    title: 'New Contact Enquiry',
+                    message: "New {$contact->enquiry_type} received from '{$contact->name}'{$orgLabel}.",
+                    applicantId: $contact->id,
+                    applicantName: $contact->name,
+                    applicantEmail: $contact->work_email,
+                    type: 'info'
+                );
+                MembershipAdminNotificationHelper::notifyContactEnquiry($contact);
+                OperationsOfficerAdminNotificationHelper::notifyContactEnquiry($contact);
+
+            } catch (\Throwable $e) {
+                Log::warning('Failed to create in-app admin notification for contact', [
+                    'contact_id' => $contact->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+
+            return ContactActionResponseData::success(
+                message: "Contact from {$contact->name} created successfully.",
+                contact: ContactResponseData::fromModel($contact),
+            );
         } catch (\Throwable $e) {
             Log::error('Contact creation failed', ['error' => $e->getMessage()]);
             return ContactActionResponseData::error(

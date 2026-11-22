@@ -4,6 +4,8 @@ namespace App\Helpers;
 
 use App\Modules\ApplicantNotification\Models\ApplicantNotificationModel;
 use App\Modules\Application\Models\ApplicationModel;
+use App\Modules\Invoice\Models\InvoiceModel;
+use App\Modules\Payment\Models\PaymentModel;
 use Illuminate\Support\Facades\Log;
 
 class ApplicantNotificationHelper
@@ -121,4 +123,37 @@ class ApplicantNotificationHelper
             type: 'warning'
         );
     }
+    /**
+     * Notify applicant when a membership invoice is generated.
+     */
+    public static function notifyInvoiceCreated(InvoiceModel $invoice, ?string $applicantName = null): ?ApplicantNotificationModel
+    {
+        $totalFormatted = number_format((float) ($invoice->total ?? 0), 2);
+        $message = "Invoice #{$invoice->invoice_number} for USD {$totalFormatted} has been issued for your ISPAU membership.";
+
+        return self::createNotification(
+            title: 'New Invoice Issued',
+            message: $message,
+            applicantId: $invoice->applicant_id,
+            applicantName: $applicantName,
+            type: 'info'
+        );
+    }
+    /**
+     * Notify applicant when a payment is received and recorded.
+     */
+    public static function notifyPaymentCreated(PaymentModel $payment, ?string $applicantName = null): ?ApplicantNotificationModel
+    {
+        $amountFormatted = number_format((float) ($payment->amount ?? 0), 2);
+        $message = "A payment of USD {$amountFormatted} (Receipt #{$payment->payment_no}) has been received and confirmed.";
+
+        return self::createNotification(
+            title: 'Payment Received',
+            message: $message,
+            applicantId: $payment->applicant_id,
+            applicantName: $applicantName,
+            type: 'success'
+        );
+    }
+
 }

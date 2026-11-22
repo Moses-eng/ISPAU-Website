@@ -107,9 +107,9 @@ class ApplicantAuthService
             return ApplicantLoginResponseData::error('Invalid email or code.');
         }
 
-        if ($application->isDraft() || $application->isDeclined()) {
-            return ApplicantLoginResponseData::error('This application is not available for login.');
-        }
+        // if ($application->isDraft() || $application->isDeclined()) {
+        //     return ApplicantLoginResponseData::error('This application is not available for login.');
+        // }
 
         $testCode = config('applicant_otp.test_code');
         $isTest   = $testCode && hash_equals((string) $testCode, $data->code);

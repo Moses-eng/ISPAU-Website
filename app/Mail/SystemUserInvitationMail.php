@@ -32,8 +32,7 @@ class SystemUserInvitationMail extends Mailable
         $this->appName           = config('app.name', 'ISPAU');
         $this->supportEmail      = config('mail.from.address');
 
-
-        $frontendUrl = rtrim(config('app.admin_password_set_up_url'));
+        $frontendUrl = env('ADMIN_PASSWORD_SET_UP_URL');
 
         $query = http_build_query([
             'email' => $email,

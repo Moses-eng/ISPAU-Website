@@ -4,6 +4,8 @@ namespace App\Modules\Application\Services;
 
 use App\Helpers\AdminNotificationHelper;
 use App\Helpers\ApplicantNotificationHelper;
+use App\Helpers\MembershipAdminNotificationHelper;
+use App\Helpers\OperationsOfficerAdminNotificationHelper;
 use App\Mail\ApplicationDraftSavedMail;
 use App\Mail\ApplicationStatusUpdatedMail;
 use App\Mail\ApplicationSubmittedMail;
@@ -141,9 +143,11 @@ class ApplicationService implements ApplicationServiceInterface
                 }
             }
 
-            // 3. In-App Notifications
+            // 3. In-App Notifications (Applicant + All 3 Admins)
             ApplicantNotificationHelper::notifyApplicationSubmitted($app);
             AdminNotificationHelper::notifyApplicationSubmitted($app);
+            OperationsOfficerAdminNotificationHelper::notifyApplicationSubmitted($app);
+            MembershipAdminNotificationHelper::notifyApplicationSubmitted($app);
 
             return ApplicationActionResponseData::success(
                 message: "Application for {$app->legal_name} submitted successfully.",
@@ -204,9 +208,11 @@ class ApplicationService implements ApplicationServiceInterface
                 }
             }
 
-            // 3. In-App Notifications
+            // 3. In-App Notifications (Applicant + All 3 Admins)
             ApplicantNotificationHelper::notifyDraftSaved($app);
             AdminNotificationHelper::notifyDraftSaved($app);
+            OperationsOfficerAdminNotificationHelper::notifyDraftSaved($app);
+            MembershipAdminNotificationHelper::notifyDraftSaved($app);
 
             return ApplicationActionResponseData::success(
                 message: 'Draft saved to server successfully.',
@@ -240,9 +246,11 @@ class ApplicationService implements ApplicationServiceInterface
                 }
             }
 
-            // 2. In-App Notifications
+            // 2. In-App Notifications (Applicant + All 3 Admins)
             ApplicantNotificationHelper::notifyStatusUpdated($app, $status);
             AdminNotificationHelper::notifyStatusUpdated($app, $status);
+            OperationsOfficerAdminNotificationHelper::notifyStatusUpdated($app, $status);
+            MembershipAdminNotificationHelper::notifyStatusUpdated($app, $status);
 
             return ApplicationActionResponseData::success(
                 message: 'Application status updated successfully.',
@@ -270,8 +278,10 @@ class ApplicationService implements ApplicationServiceInterface
             // Delete storage assets
             $this->attachments->deleteDirectory($application->id);
 
-            // In-App Admin Notification (must be called before delete if foreign key cascade exists)
+            // In-App Admin Notifications for All 3 Admins (must be called before delete if foreign key cascade exists)
             AdminNotificationHelper::notifyApplicationDeleted($legalName, $applicantId, $applicantName, $applicantEmail);
+            OperationsOfficerAdminNotificationHelper::notifyApplicationDeleted($legalName, $applicantId, $applicantName, $applicantEmail);
+            MembershipAdminNotificationHelper::notifyApplicationDeleted($legalName, $applicantId, $applicantName, $applicantEmail);
 
             // In-App Applicant Notification
             ApplicantNotificationHelper::notifyApplicationDeleted($legalName, $applicantId, $applicantName);

@@ -34,6 +34,7 @@ class SystemUserModel extends JwtAuthenticatable
     public function isSuperAdmin(): bool      { return $this->role === 'super_admin'; }
     public function isFinanceAdmin(): bool    { return $this->role === 'finance_admin'; }
     public function isMembershipAdmin(): bool { return $this->role === 'membership_admin'; }
+    public function isOperationsOfficer(): bool   { return $this->role === 'operations_officer'; }
 
     public function getInitialsAttribute(): string
     {
@@ -43,5 +44,15 @@ class SystemUserModel extends JwtAuthenticatable
             $initials .= strtoupper(substr($p, 0, 1));
         }
         return $initials ?: 'S';
+    }
+
+    public static function getSystemUserName(?string $userId): ?string
+    {
+        if (! $userId) {
+            return null;
+        }
+
+        $user = static::find($userId);
+        return $user?->name ?? 'Sytem User';
     }
 }

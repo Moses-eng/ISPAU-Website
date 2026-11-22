@@ -12,7 +12,7 @@ class SystemUserRegistrationRule
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:system_users,email',
             'password' => 'required|string|min:6|confirmed',
-            'role'     => ['sometimes', Rule::in(['super_admin', 'finance_admin', 'membership_admin'])],
+            'role'     => ['sometimes', Rule::in(['super_admin', 'finance_admin', 'membership_admin','operations_officer'])],
         ];
     }
 
@@ -22,7 +22,7 @@ class SystemUserRegistrationRule
             'name'      => 'sometimes|string|max:255',
             'email'     => ['sometimes', 'email', Rule::unique('system_users', 'email')->ignore($userId)],
             'password'  => 'sometimes|string|min:6|confirmed',
-            'role'      => ['sometimes', Rule::in(['super_admin', 'finance_admin', 'membership_admin'])],
+            'role'      => ['sometimes', Rule::in(['super_admin', 'finance_admin', 'membership_admin','operations_officer'])],
             'is_active' => 'sometimes|boolean',
         ];
     }

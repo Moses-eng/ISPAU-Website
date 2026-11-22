@@ -40,6 +40,10 @@ use App\Modules\Banner\Repositories\BannerRepository;
 use App\Modules\Banner\RepositoryInterfaces\BannerRepositoryInterface;
 use App\Modules\Banner\Services\BannerAttachmentService;
 use App\Modules\Banner\Services\BannerService;
+use App\Modules\Dispute\Interfaces\DisputeServiceInterface;
+use App\Modules\Dispute\Repositories\DisputeRepository;
+use App\Modules\Dispute\RepositoryInterfaces\DisputeRepositoryInterface;
+use App\Modules\Dispute\Services\DisputeService;
 use App\Modules\FinanceAdminNotification\Interfaces\FinanceAdminNotificationServiceInterface;
 use App\Modules\FinanceAdminNotification\Repositories\FinanceAdminNotificationRepository;
 use App\Modules\FinanceAdminNotification\RepositoryInterfaces\FinanceAdminNotificationRepositoryInterface;
@@ -49,6 +53,11 @@ use App\Modules\HeroSlide\Repositories\HeroSlideRepository;
 use App\Modules\HeroSlide\RepositoryInterfaces\HeroSlideRepositoryInterface;
 use App\Modules\HeroSlide\Services\HeroSlideAttachmentService;
 use App\Modules\HeroSlide\Services\HeroSlideService;
+use App\Modules\Invoice\Interfaces\InvoiceServiceInterface;
+use App\Modules\Invoice\Repositories\InvoiceRepository;
+use App\Modules\Invoice\RepositoryInterfaces\InvoiceRepositoryInterface;
+use App\Modules\Invoice\Services\InvoiceNumberGenerator;
+use App\Modules\Invoice\Services\InvoiceService;
 use App\Modules\MembershipAdminNotification\Interfaces\MembershipAdminNotificationServiceInterface;
 use App\Modules\MembershipAdminNotification\Repositories\MembershipAdminNotificationRepository;
 use App\Modules\MembershipAdminNotification\RepositoryInterfaces\MembershipAdminNotificationRepositoryInterface;
@@ -57,6 +66,19 @@ use App\Modules\OperationsOfficerNotification\Interfaces\OperationsOfficerNotifi
 use App\Modules\OperationsOfficerNotification\Repositories\OperationsOfficerNotificationRepository;
 use App\Modules\OperationsOfficerNotification\RepositoryInterfaces\OperationsOfficerNotificationRepositoryInterface;
 use App\Modules\OperationsOfficerNotification\Services\OperationsOfficerNotificationService;
+use App\Modules\Payment\Interfaces\PaymentServiceInterface;
+use App\Modules\Payment\Repositories\PaymentRepository;
+use App\Modules\Payment\RepositoryInterfaces\PaymentRepositoryInterface;
+use App\Modules\Payment\Services\PaymentNumberGenerator;
+use App\Modules\Payment\Services\PaymentService;
+use App\Modules\Receipt\Interfaces\ReceiptServiceInterface;
+use App\Modules\Receipt\Repositories\ReceiptRepository;
+use App\Modules\Receipt\RepositoryInterfaces\ReceiptRepositoryInterface;
+use App\Modules\Receipt\Services\ReceiptService;
+use App\Modules\Statistics\Interfaces\StatisticsServiceInterface;
+use App\Modules\Statistics\Repositories\StatisticsRepository;
+use App\Modules\Statistics\RepositoryInterfaces\StatisticsRepositoryInterface;
+use App\Modules\Statistics\Services\StatisticsService;
 use App\Modules\Tier\Interfaces\TierServiceInterface;
 use App\Modules\Tier\RepositoryInterfaces\TierRepositoryInterface;
 use App\Modules\Tier\Repositories\TierRepository;
@@ -130,11 +152,28 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(OperationsOfficerNotificationRepositoryInterface::class, OperationsOfficerNotificationRepository::class);
         $this->app->bind(OperationsOfficerNotificationServiceInterface::class, OperationsOfficerNotificationService::class);
 
-        // … Banner bindings …
-        // … Banner bindings …
-        // … Banner bindings …
-        // … Banner bindings …
-        // … Banner bindings …
+        // … Dispute bindings …
+        $this->app->bind(DisputeRepositoryInterface::class, DisputeRepository::class);
+        $this->app->bind(DisputeServiceInterface::class, DisputeService::class);
+
+        // … Invoice bindings …
+        $this->app->bind(InvoiceRepositoryInterface::class, InvoiceRepository::class);
+        $this->app->bind(InvoiceServiceInterface::class, InvoiceService::class);
+        $this->app->singleton(InvoiceNumberGenerator::class);
+
+        // … Receipt bindings …
+        $this->app->bind(ReceiptRepositoryInterface::class, ReceiptRepository::class);
+        $this->app->bind(ReceiptServiceInterface::class, ReceiptService::class);
+
+        // … Payment bindings …
+        $this->app->bind(PaymentRepositoryInterface::class, PaymentRepository::class);
+        $this->app->bind(PaymentServiceInterface::class, PaymentService::class);
+        $this->app->singleton(PaymentNumberGenerator::class);
+
+        // … Statistics bindings …
+        $this->app->bind(StatisticsServiceInterface::class,StatisticsService::class,);
+        $this->app->bind(StatisticsRepositoryInterface::class,StatisticsRepository::class,);
+
         // … Banner bindings …
         // … Banner bindings …
         // … Banner bindings …
@@ -165,10 +204,10 @@ class AppServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(app_path('Modules/FinanceAdminNotification/Migrations'));
         $this->loadMigrationsFrom(app_path('Modules/MembershipAdminNotification/Migrations'));
         $this->loadMigrationsFrom(app_path('Modules/OperationsOfficerNotification/Migrations'));
-        // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
-        // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
-        // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
-        // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
+        $this->loadMigrationsFrom(app_path('Modules/Dispute/Migrations'));
+        $this->loadMigrationsFrom(app_path('Modules/Invoice/Migrations'));
+        $this->loadMigrationsFrom(app_path('Modules/Payment/Migrations'));
+        $this->loadMigrationsFrom(app_path('Modules/Receipt/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));

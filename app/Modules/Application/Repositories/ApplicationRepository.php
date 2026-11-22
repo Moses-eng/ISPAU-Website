@@ -37,6 +37,11 @@ class ApplicationRepository implements ApplicationRepositoryInterface
             $query->where('status', $filters['status']);
         }
 
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['Active']);
+        }
+
+
         if (! empty($filters['requested_tier'])) {
             $query->where('requested_tier', $filters['requested_tier']);
         }

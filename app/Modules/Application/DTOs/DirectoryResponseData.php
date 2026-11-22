@@ -29,26 +29,21 @@ class DirectoryResponseData
         $address = is_array($app->uganda_address) ? $app->uganda_address : [];
         $allAttachments = is_array($app->attachments) ? $app->attachments : [];
 
-        // Resolve display name
         $name = !empty($profile['public_name'])
             ? $profile['public_name']
             : ($app->trading_name ?: $app->legal_name);
 
-        // Resolve description
         $description = $profile['public_description']
             ?? $profile['description']
             ?? $org['description']
             ?? 'ISPAU Accredited Member';
 
-        // Resolve services & coverage
         $services = self::normalizeArray($profile['public_services'] ?? $profile['services'] ?? $org['services'] ?? ['Internet Service Provider']);
         $coverage = self::normalizeArray($profile['public_coverage'] ?? $profile['coverage'] ?? $org['regions'] ?? ['Uganda']);
 
-        // Send ONLY the logo in attachments
-        $publicLogo = $allAttachments['publicLogo'] ?? $allAttachments['logo'] ?? null;
-        $attachments = [
-            'publicLogo' => $publicLogo,
-        ];
+        // Raw stored path, e.g. "application/{id}/publicLogo.jpeg"
+        $publicLogoPath = $allAttachments['publicLogo'] ?? $allAttachments['logo'] ?? null;
+        // $logoUrl $publicLogoPath;
 
         return new self(
             id:          $app->id,
@@ -63,7 +58,7 @@ class DirectoryResponseData
             email:       $profile['public_contact'] ?? $app->business_email,
             phone:       $app->business_phone,
             identity:    substr(md5($app->id), 0, 8),
-            attachments: $attachments,
+            attachments: ['publicLogo' => $publicLogoPath],
         );
     }
 

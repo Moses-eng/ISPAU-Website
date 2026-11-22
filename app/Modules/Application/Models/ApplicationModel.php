@@ -164,4 +164,31 @@ class ApplicationModel extends JwtAuthenticatable
             ? "{$tier->name} -- USD {$tier->cost}"
             : $this->requested_tier;
     }
+
+    /**
+     * Get applicant email using applicant ID (falls back to billing/applicant email).
+     */
+    public static function getApplicateEmail(?string $applicantId): ?string
+    {
+        if (! $applicantId) {
+            return null;
+        }
+
+        $applicant = static::find($applicantId);
+        return $applicant?->business_email;
+    }
+
+    /**
+     * Get applicant legal or display name using applicant ID.
+     */
+    public static function getApplicateName(?string $applicantId): ?string
+    {
+        if (! $applicantId) {
+            return null;
+        }
+
+        $applicant = static::find($applicantId);
+        return $applicant?->legal_name ?? 'Valued Applicant';
+    }
 }
+
