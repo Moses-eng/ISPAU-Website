@@ -142,25 +142,28 @@ export default function Login({
 
     const { token, application } =
       res.data as unknown as VerifyResponsePayload
+    if (application?.status !== "Draft"){
 
-    const storedUser: StoredUser = {
-      id: application?.id ?? "",
-      name:
-        application?.applicant_name ||
-        application?.legal_name ||
-        "Applicant",
-      email: application?.business_email || email.trim(),
-      contact:
-        application?.applicant_phone || application?.business_phone || "",
-      status: application?.status ?? "Submitted",
+      const storedUser: StoredUser = {
+        id: application?.id ?? "",
+        name:application?.legal_name ||application?.applicant_name ||"Applicant",
+        email: application?.business_email || email.trim(),
+        contact:
+          application?.applicant_phone || application?.business_phone || "",
+        status: application?.status ?? "Submitted",
+      }
+
+        session.signIn(storedUser, token ?? "")
+
+      const actor = session.getSnapshot()
+
+      if (onSignIn && actor) {
+        onSignIn(actor)
+      }
     }
 
-    session.signIn(storedUser, token ?? "")
-
-    const actor = session.getSnapshot()
-
-    if (onSignIn && actor) {
-      onSignIn(actor)
+  if (application) {
+      sessionStorage.setItem("ispau.draft_application", JSON.stringify(application))
     }
 
     // Route based on the intent chosen on the entry screen.
@@ -348,7 +351,7 @@ export default function Login({
  * - Active accounts or verified submissions route to the overview dashboard.
  */
 function resolvePostLoginPath(intent: EntryIntent,status: string | undefined,): string {
-  if (intent === "returning" || status === "Draft") {
+  if (intent === "returning" && status === "Draft") {
     return "/portal#/application"
   }
   return "/portal#/overview"

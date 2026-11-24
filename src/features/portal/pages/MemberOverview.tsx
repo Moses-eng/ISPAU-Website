@@ -22,6 +22,13 @@ export default function MemberOverview({
   const updatedAt = app.updated_at || app.updatedAt || app.created_at || ""
   const clarifications = app.clarifications || []
 
+  // Prioritize application_number over the database UUID
+  const applicationNumber =
+    (app as any).application_number ||
+    (app as any).applicationNumber ||
+    app.registration_reference ||
+    app.id
+
   return (
     <>
       <PageHeader
@@ -54,8 +61,10 @@ export default function MemberOverview({
           </p>
         </div>
         <dl>
-          <dt>Application ID</dt>
-          <dd className="font-mono text-xs">{app.id}</dd>
+          <dt>Application Number</dt>
+          <dd className="font-mono text-sm font-bold text-neutral-800">
+            {applicationNumber}
+          </dd>
           <dt>Last update</dt>
           <dd>
             {updatedAt ? new Date(updatedAt).toLocaleString("en-GB") : "Recently"}
@@ -138,6 +147,10 @@ export default function MemberOverview({
         <section className="workspace-panel">
           <h2>Application summary</h2>
           <dl className="workspace-record">
+            <div>
+              <dt>Application number</dt>
+              <dd className="font-mono font-semibold">{applicationNumber}</dd>
+            </div>
             <div>
               <dt>Registration reference</dt>
               <dd>{app.registration_reference || app.registrationReference || "—"}</dd>

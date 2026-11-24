@@ -22,7 +22,7 @@ export const membershipFormSchema: MembershipFieldRule[] = [
   { name: "registeredAddress", label: "Registered address", required: true },
   {
     name: "ugandaAddress",
-    label: "Uganda operating address",
+    label: "Post Office Box Number",
     required: true,
   },
   { name: "businessEmail", label: "Main business email", required: true },
@@ -102,7 +102,7 @@ export const membershipFormSchema: MembershipFieldRule[] = [
     required: true,
   },
   { name: "invoiceAddress", label: "Invoice address", required: true },
-  { name: "tin", label: "TIN", required: false, optional: true },
+  { name: "tin", label: "TIN", required: true },
   {
     name: "purchaseOrder",
     label: "Purchase-order or reference",

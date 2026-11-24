@@ -13,6 +13,8 @@ export function validateApplication(values: Values, evidence: FileRecord[]) {
     )
       errors[rule.name] = `${rule.label} is required.`
   }
+  if (values.ugandaAddress && !/^[0-9]+$/.test(String(values.ugandaAddress)))
+    errors.ugandaAddress = "Enter the box number using digits only."
   for (const key of [
     "businessEmail",
     "applicantEmail",

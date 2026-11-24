@@ -3,6 +3,8 @@ export type View =
   | "about"
   | "membership"
   | "services"
+  | "blog"
+  | "blog-post"
   | "contact"
   | "privacy"
   | "directory"

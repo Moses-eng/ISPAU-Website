@@ -9,9 +9,9 @@ export interface CompanyLogoProps {
 export default function CompanyLogo({ member, className = "" }: CompanyLogoProps) {
   const [hasError, setHasError] = useState(false)
 
-  // Resolve logo URL (supports logo_url, logoSrc, or attachments.publicLogo)
-  const src = member.logo_url || member.logoSrc || member.attachments?.publicLogo || null
-  const isImage = Boolean(src && !src.toLowerCase().endsWith(".pdf"))
+  // Resolve logo URL (supports logo_url)
+  const src = member.logo_url
+  const isImage = Boolean(src)
 
   // Generate initials if not already provided
   const initials =

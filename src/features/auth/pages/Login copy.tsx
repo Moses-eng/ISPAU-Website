@@ -294,7 +294,7 @@ export default function Login({
             </p>
           )}
 
-          {/* Toggle link that replaces “← Choose a different option”. */}
+          {/* Toggle”. */}
           <button
             type="button"
             className="text-link"

@@ -161,7 +161,6 @@ export default function Directory({ go }: { go: (v: View) => void }) {
             {filteredMembers.map((member) => {
               const servicesList = normalizeStringArray(member.services)
               const coverageList = normalizeStringArray(member.coverage)
-              const hasImage = Boolean(member.logo_url && !member.logo_url.toLowerCase().endsWith(".pdf"))
 
               return (
                 <article
@@ -169,26 +168,7 @@ export default function Directory({ go }: { go: (v: View) => void }) {
                   key={member.id}
                 >
                   <div className="member-logo-wrap">
-                    {hasImage ? (
-                      <img
-                        src={member.logo_url!}
-                        alt={member.name}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          maxHeight: "80px",
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none"
-                          const sibling = e.currentTarget.nextElementSibling as HTMLElement | null
-                          if (sibling) sibling.style.display = "flex"
-                        }}
-                      />
-                    ) : null}
-                    <span style={{ display: hasImage ? "none" : "flex", width: "100%", height: "100%" }}>
                       <CompanyLogo member={member} />
-                    </span>
                   </div>
 
                   <div className="member-listing-copy">

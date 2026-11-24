@@ -363,3 +363,34 @@
     gap: 24px;
   }
 }
+
+/* Public header: keep Login at the right edge and its menu usable at every width. */
+.header-inner {
+  max-width: none;
+}
+.header-controls > .account-menu {
+  width: auto;
+}
+.header-controls > .account-menu > button {
+  width: auto;
+  white-space: nowrap;
+}
+.header-controls > .account-menu > .account-dropdown {
+  position: absolute;
+  right: 0;
+  width: min(290px, calc(100vw - 24px));
+  background: white;
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+}
+@media (max-width: 720px) {
+  .header-controls {
+    gap: 4px;
+  }
+  .header-controls > .account-menu > button {
+    min-height: 44px;
+    padding: 0 6px;
+    font-size: 12px;
+    gap: 5px;
+  }
+}

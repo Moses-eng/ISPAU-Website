@@ -54,7 +54,7 @@ export default function NavigationDropdown({
         >
           {items.map((item) => (
             <button
-              key={item.view}
+              key={item.label}
               type="button"
               role="menuitem"
               onClick={() => onNavigate(item.view)}

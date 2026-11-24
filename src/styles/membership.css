@@ -334,3 +334,85 @@
 .comparison-panel small {
   color: var(--muted);
 }
+
+/* Selectable application sections keep completion independent of the current page. */
+.application-stepper li > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.application-stepper li > button > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 29px;
+  height: 29px;
+  border: 1px solid #d3c3c8;
+  border-radius: 50%;
+  background: white;
+  font-size: 11px;
+}
+.application-stepper li > button > strong {
+  font: inherit;
+}
+.application-stepper li > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+.application-stepper li > button:focus-visible {
+  outline: 2px solid var(--burgundy-primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.application-stepper li.done > button > span {
+  color: var(--success);
+  border-color: #83bea4;
+}
+.application-stepper li.active > button > span {
+  color: white;
+  background: var(--burgundy-primary);
+  border-color: var(--burgundy-primary);
+}
+@media (max-width: 1000px) {
+  .application-stepper li:not(:last-child)::after {
+    display: none;
+  }
+  .application-stepper ol {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 0;
+    overflow: visible;
+  }
+  .application-stepper li > button {
+    justify-content: center;
+    min-width: 0;
+  }
+  .application-stepper li > button > strong {
+    display: none;
+  }
+  .application-stepper li {
+    flex: 0 0 44px;
+  }
+}
+
+/* Multiple supporting documents - UI only; existing API services are unchanged. */
+.application-main .evidence-upload { grid-template-columns: minmax(0, 1fr); }
+.evidence-selection { display: grid; gap: 12px; min-width: 0; }
+.evidence-count { margin: 0; color: var(--muted); font-size: 12px; }
+.evidence-document-list { list-style: none; margin: 0; padding: 0; min-width: 0; }
+.evidence-document-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.evidence-document-list li > span { min-width: 0; overflow-wrap: anywhere; }
+.evidence-document-list strong, .evidence-document-list small { display: block; }
+.evidence-document-list strong { font-size: 13px; font-weight: 500; }
+.evidence-document-list small { color: var(--muted); font-size: 11px; }
+.evidence-document-list .btn { flex-shrink: 0; min-height: 44px; }
+.evidence-selection > .btn { justify-self: start; }
+@media (max-width: 600px) { .evidence-selection > .btn { width: 100%; } }

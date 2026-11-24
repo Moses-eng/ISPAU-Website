@@ -13,6 +13,7 @@ export default function ApplicationInput({
   as = "input",
   options,
   placeholder,
+  hint,
 }: {
   name: string
   label: string
@@ -24,8 +25,10 @@ export default function ApplicationInput({
   as?: "input" | "select" | "textarea"
   options?: SelectOption[]
   placeholder?: string
+  hint?: string
 }) {
   const id = `application-${name}`
+  const describedBy = [hint ? `${id}-hint` : "", errors[name] ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined
   return (
     <label
       className={`field ${errors[name] ? "field-error" : ""}`}
@@ -43,7 +46,7 @@ export default function ApplicationInput({
           required={required}
           aria-required={required}
           aria-invalid={Boolean(errors[name])}
-          aria-describedby={errors[name] ? `${id}-error` : undefined}
+          aria-describedby={describedBy}
         >
           <option value="">Select an option</option>
           {options?.map((option) => {
@@ -65,22 +68,25 @@ export default function ApplicationInput({
           required={required}
           aria-required={required}
           aria-invalid={Boolean(errors[name])}
-          aria-describedby={errors[name] ? `${id}-error` : undefined}
+          aria-describedby={describedBy}
         />
       ) : (
         <input
           id={id}
           type={name.toLowerCase().includes("email") ? "email" : "text"}
+          inputMode={name === "ugandaAddress" ? "numeric" : undefined}
+          pattern={name === "ugandaAddress" ? "[0-9]+" : undefined}
           autoComplete={name === "businessEmail" ? "email" : undefined}
           value={String(values[name] || "")}
           placeholder={placeholder}
-          onChange={(event) => setValue(name, event.target.value)}
+          onChange={(event) => setValue(name, name === "ugandaAddress" ? event.target.value.replace(/[^0-9]/g, "") : event.target.value)}
           required={required}
           aria-required={required}
           aria-invalid={Boolean(errors[name])}
-          aria-describedby={errors[name] ? `${id}-error` : undefined}
+          aria-describedby={describedBy}
         />
       )}
+      {hint && <small id={`${id}-hint`} className="helper">{hint}</small>}
       {errors[name] && (
         <small className="inline-error" id={`${id}-error`}>
           {errors[name]}

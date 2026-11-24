@@ -81,7 +81,6 @@ export default function PageHero({
         <figure className="page-hero-media">
           <img src={image.src} alt={image.alt} />
           <figcaption>
-            {/* {image.caption} <span>Photo: {image.credit}</span> */}
             {image.caption}
           </figcaption>
         </figure>

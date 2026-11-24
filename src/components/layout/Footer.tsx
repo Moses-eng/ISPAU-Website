@@ -34,6 +34,12 @@ export default function Footer({ go }: { go: (view: View) => void }) {
       <div className="footer-bottom">
         <span>© 2026 ISPAU.</span>
         <span>Privacy · Responsible information use</span>
+        <span className="footer-credit">
+          Powered by{" "}
+          <a href="https://wa.me/256784173347?text=Hello%20Petaiah%20Technologies%2C%20I%20visited%20the%20ISPAU%20website%20and%20noticed%20that%20it%20was%20powered%20by%20your%20company.%20I%27m%20interested%20in%20discussing%20a%20similar%20website%20or%20another%20technology%20solution%20for%20my%20business.">
+            Petaiah Technologies
+          </a>
+        </span>
       </div>
     </footer>
   )

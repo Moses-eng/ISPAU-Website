@@ -8,6 +8,8 @@ import {
   API_APPLICANT_LOGOUT,
   API_APPLICATION_UPDATE,
   API_APPLICATION_DOWNLOAD_PDF,
+  API_APPLICANT_RECEIPTS_UPLOAD,
+  API_APPLICANT_SUBSCRIPTION,
 } from "./APIs";
 import authStore from "./authStore";
 
@@ -15,6 +17,31 @@ export interface ApplicantOtpResponse {
   success: boolean;
   message: string;
   data: Record<string, unknown> | null;
+}
+
+export type ApplicantSubscriptionStatus = 'active' | 'expired' | 'cancelled';
+
+export interface ApplicantSubscription {
+  id: string;
+  applicant_id: string;
+  invoice_id: string;
+  payment_id: string | null;
+  payment_confirmed_at: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  status: ApplicantSubscriptionStatus;
+  days_remaining: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ApplicantSubscriptionResponse {
+  success: boolean;
+  message: string;
+  data: {
+    subscription: ApplicantSubscription | null;
+  } | null;
+  fieldErrors?: Record<string, string> | null;
 }
 
 export interface LiveApplication {
@@ -96,7 +123,21 @@ export interface LiveApplication {
   createdAt?: string;
   updatedAt?: string;
 }
+export interface ApplicantReceipt {
+  receipt_id: string;
+  invoice_id: string;
+  applicant_id: string;
+  receipt_pdf: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
 
+export interface ApplicantReceiptUploadResponse {
+  success: boolean;
+  message: string;
+  data: ApplicantReceipt | null;
+  fieldErrors?: Record<string, string> | null;
+}
 export interface ApplicantProfileResponse {
   success: boolean;
   message: string;
@@ -149,7 +190,6 @@ const handleError = (error: unknown, fallback: string) => {
 
 class WebAplicatService {
   async requestApplicantOtp(businessEmail: string): Promise<ApplicantOtpResponse> {
-    console.log("businessEmail"+businessEmail+"URL"+API_PUBLIC_APPLICANT_REQUEST_OTP)
     try {
       const res = await axiosClient.post(API_PUBLIC_APPLICANT_REQUEST_OTP, {
         businessEmail: businessEmail.trim().toLowerCase(),
@@ -201,6 +241,7 @@ class WebAplicatService {
 
     try {
       const res = await axiosClient.get(API_APPLICANT_PROFILE_SHOW(userId));
+
       return {
         success: true,
         message: res.data?.message ?? "Profile loaded.",
@@ -270,7 +311,74 @@ class WebAplicatService {
   downloadSummaryPdfUrl(id: string): string {
     return API_APPLICATION_DOWNLOAD_PDF(id);
   }
+
+    /**
+   * Applicant uploads a receipt PDF for a given invoice.
+   * POST /api/v1/auth/applicant/receipts/upload   (multipart/form-data)
+   *
+   * The backend derives applicant_id from the JWT — do not send it.
+   * If a receipt already exists for (invoice_id, applicant_id), the PDF is replaced.
+   */
+  async uploadReceipt(
+    invoiceId: string,
+    file: File,
+  ): Promise<ApplicantReceiptUploadResponse> {
+    try {
+      const fd = new FormData();
+      fd.append("invoice_id", invoiceId);
+      fd.append("receipt_pdf", file);
+
+      const res = await axiosClient.post(API_APPLICANT_RECEIPTS_UPLOAD, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const receipt: ApplicantReceipt | null =
+        res.data?.data?.receipt ?? res.data?.data ?? null;
+
+      return {
+        success: true,
+        message: res.data?.message ?? "Receipt uploaded successfully.",
+        data: receipt,
+      };
+    } catch (error) {
+      const e = handleError(error, "Failed to upload receipt.");
+      return {
+        success: false,
+        message: e.message,
+        data: null,
+        fieldErrors: e.fieldErrors,
+      };
+    }
+  }
+    /**
+   * Fetch the logged-in applicant's active subscription.
+   * GET /api/v1/auth/applicant/subscription
+   *
+   * The backend resolves the applicant from the JWT — no id is sent.
+   * Returns success:true with data.subscription = null when there is no
+   * active subscription (that is a valid state, not an error).
+   */
+  async getSubscription(): Promise<ApplicantSubscriptionResponse> {
+    try {
+      const res = await axiosClient.get(API_APPLICANT_SUBSCRIPTION);
+
+      return {
+        success: true,
+        message: res.data?.message ?? "Subscription loaded.",
+        data: res.data?.data ?? null,
+      };
+    } catch (error) {
+      const e = handleError(error, "Failed to load subscription.");
+      return {
+        success: false,
+        message: e.message,
+        data: null,
+        fieldErrors: e.fieldErrors,
+      };
+    }
+  }
 }
 
 export const webAplicatService = new WebAplicatService();
 export default webAplicatService;
+

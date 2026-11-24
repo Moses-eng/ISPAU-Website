@@ -110,6 +110,11 @@ export default function MemberWorkspace({
 
   const section = route.split("/")[0] || "overview"
   const legalName = application.legal_name || application.legalName || "Organisation"
+  const applicationNumber =
+    (application as any).application_number ||
+    (application as any).applicationNumber ||
+    application.registration_reference ||
+    application.id
 
   return (
     <div className="workspace-content">
@@ -131,7 +136,6 @@ export default function MemberWorkspace({
 
       {/* Routes & Sub-views */}
       {section === "notifications" ? (
-        /* 2. RENDER NOTIFICATIONS HERE */
         <Notifications go={navigate} />
       ) : ["company", "organisation", "representatives", "profile"].includes(section) ? (
         <MemberCompany
@@ -151,8 +155,10 @@ export default function MemberWorkspace({
             <h2>{legalName}</h2>
             <dl className="workspace-record mt-4">
               <div>
-                <dt>Account ID</dt>
-                <dd className="font-mono text-sm">{application.id}</dd>
+                <dt>Application number</dt>
+                <dd className="font-mono text-sm font-bold text-neutral-800">
+                  {applicationNumber}
+                </dd>
               </div>
               <div>
                 <dt>Business email</dt>
@@ -176,10 +182,16 @@ export default function MemberWorkspace({
         <>
           <PageHeader
             title="Application Details"
-            description={`Reference: ${application.id}`}
+            description={`Application Number: ${applicationNumber}`}
           />
           <section className="workspace-panel">
             <dl className="workspace-record">
+              <div>
+                <dt>Application number</dt>
+                <dd className="font-mono font-bold text-neutral-800">
+                  {applicationNumber}
+                </dd>
+              </div>
               <div>
                 <dt>Legal entity name</dt>
                 <dd>{application.legal_name || application.legalName || "—"}</dd>

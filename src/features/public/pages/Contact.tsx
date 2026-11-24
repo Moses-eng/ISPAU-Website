@@ -6,7 +6,7 @@ import FormCard from "@/components/ui/FormCard"
 import Icon from "@/components/ui/Icon"
 import PageHero from "@/components/ui/PageHero"
 import PublicShell from "@/components/layout/PublicShell"
-import contactService, { type ContactPayload } from "@/apiServices/contactService"
+import contactService, { type Contact, type ContactPayload } from "@/apiServices/contactService"
 import type { View } from "@/types/View"
 
 const INITIAL_FORM: ContactPayload = {
@@ -19,8 +19,8 @@ const INITIAL_FORM: ContactPayload = {
 
 export default function Contact({ go }: { go: (v: View) => void }) {
   const [formData, setFormData] = useState<ContactPayload>(INITIAL_FORM)
+  const [submittedContact, setSubmittedContact] = useState<Contact | null>(null)
   const [loading, setLoading] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string> | null>(null)
 
@@ -39,14 +39,17 @@ export default function Contact({ go }: { go: (v: View) => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setSuccessMessage(null)
     setErrorMessage(null)
     setFieldErrors(null)
 
     const res = await contactService.create(formData)
 
     if (res.success) {
-      setSuccessMessage("Thank you for reaching out. Your enquiry has been received.")
+      setSubmittedContact(res.data || {
+        ...formData,
+        id: "",
+        status: "active",
+      })
       setFormData(INITIAL_FORM)
     } else {
       setErrorMessage(res.message || "Something went wrong. Please check your submission.")
@@ -56,6 +59,13 @@ export default function Contact({ go }: { go: (v: View) => void }) {
     }
 
     setLoading(false)
+  }
+
+  const handleReset = () => {
+    setSubmittedContact(null)
+    setErrorMessage(null)
+    setFieldErrors(null)
+    setFormData(INITIAL_FORM)
   }
 
   return (
@@ -89,6 +99,7 @@ export default function Contact({ go }: { go: (v: View) => void }) {
             </p>
           </div>
         </div>
+
         <div>
           <div className="flex flex-wrap gap-3 mb-6">
             <Button kind="secondary" onClick={() => go("record-request")}>
@@ -99,86 +110,163 @@ export default function Contact({ go }: { go: (v: View) => void }) {
             </Button>
           </div>
 
-          <FormCard title="Send an enquiry">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              {successMessage && (
+          <FormCard title={submittedContact ? "Enquiry Received" : "Send an enquiry"}>
+            {submittedContact ? (
+              /* =================== IMPROVED SUCCESS ALERT UI =================== */
+              <div
+                role="status"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                  padding: "8px 0",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      background: "#22c55e",
+                      color: "#ffffff",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon name="check" size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#14532d" }}>
+                      Thank you for contacting ISPAU
+                    </h3>
+                    <p style={{ margin: "2px 0 0", fontSize: "0.88rem", color: "#166534" }}>
+                      Your enquiry has been delivered to the Secretariat.
+                    </p>
+                  </div>
+                </div>
+
                 <div
-                  className="p-3 rounded text-sm"
                   style={{
-                    backgroundColor: "var(--success-bg)",
-                    color: "var(--success)",
+                    background: "#f9fafb",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    padding: "14px 16px",
+                    fontSize: "0.88rem",
+                    display: "grid",
+                    gap: "8px",
                   }}
                 >
-                  {successMessage}
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#6b7280" }}>Sender:</span>
+                    <strong>{submittedContact.name} ({submittedContact.organisation})</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#6b7280" }}>Reply Email:</span>
+                    <strong>{submittedContact.work_email}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#6b7280" }}>Subject:</span>
+                    <span>{submittedContact.enquiry_type}</span>
+                  </div>
                 </div>
-              )}
-              {errorMessage && (
-                <div
-                  className="p-3 rounded text-sm"
-                  style={{
-                    backgroundColor: "var(--danger-bg)",
-                    color: "var(--danger)",
-                  }}
-                >
-                  {errorMessage}
+
+                <p style={{ margin: 0, fontSize: "0.9rem", color: "#4b5563", lineHeight: 1.5 }}>
+                  Our team reviews enquiries during regular business hours and will follow up with you directly at{" "}
+                  <strong>{submittedContact.work_email}</strong>.
+                </p>
+
+                <div style={{ paddingTop: "8px" }}>
+                  <Button kind="secondary" onClick={handleReset}>
+                    Send another enquiry
+                  </Button>
                 </div>
-              )}
+              </div>
+            ) : (
+              /* =================== FORM WITH ERROR BANNER =================== */
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                {errorMessage && (
+                  <div
+                    role="alert"
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "10px",
+                      padding: "12px 14px",
+                      borderRadius: "8px",
+                      backgroundColor: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      color: "#991b1b",
+                      fontSize: "0.88rem",
+                    }}
+                  >
+                    <span style={{ flexShrink: 0, marginTop: "2px" }}>
+                      <Icon name="shield" size={16} />
+                    </span>
+                    <div>
+                      <strong>Submission error: </strong>
+                      <span>{errorMessage}</span>
+                    </div>
+                  </div>
+                )}
 
-              <Field
-                label="Name"
-                placeholder="Your full name"
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                error={fieldErrors?.name}
-                required
-              />
+                <Field
+                  label="Name"
+                  placeholder="Your full name"
+                  value={formData.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  error={fieldErrors?.name}
+                  required
+                />
 
-              <Field
-                label="Work email"
-                type="email"
-                placeholder="name@organisation.ug"
-                value={formData.work_email}
-                onChange={(e) => handleChange("work_email", e.target.value)}
-                error={fieldErrors?.work_email}
-                required
-              />
+                <Field
+                  label="Work email"
+                  type="email"
+                  placeholder="name@organisation.ug"
+                  value={formData.work_email}
+                  onChange={(e) => handleChange("work_email", e.target.value)}
+                  error={fieldErrors?.work_email}
+                  required
+                />
 
-              <Field
-                label="Organisation"
-                placeholder="Organisation name"
-                value={formData.organisation}
-                onChange={(e) => handleChange("organisation", e.target.value)}
-                error={fieldErrors?.organisation}
-                required
-              />
+                <Field
+                  label="Organisation"
+                  placeholder="Organisation name"
+                  value={formData.organisation}
+                  onChange={(e) => handleChange("organisation", e.target.value)}
+                  error={fieldErrors?.organisation}
+                  required
+                />
 
-              <Field
-                label="Enquiry type"
-                as="select"
-                options={[
-                  "General enquiry",
-                  "Membership guidance",
-                  "Services & activities",
-                ]}
-                value={formData.enquiry_type}
-                onChange={(e) => handleChange("enquiry_type", e.target.value)}
-                error={fieldErrors?.enquiry_type}
-              />
+                <Field
+                  label="Enquiry type"
+                  as="select"
+                  options={[
+                    "General enquiry",
+                    "Membership guidance",
+                    "Services & activities",
+                  ]}
+                  value={formData.enquiry_type}
+                  onChange={(e) => handleChange("enquiry_type", e.target.value)}
+                  error={fieldErrors?.enquiry_type}
+                />
 
-              <Field
-                label="Message"
-                placeholder="How can we help?"
-                as="textarea"
-                value={formData.message}
-                onChange={(e) => handleChange("message", e.target.value)}
-                error={fieldErrors?.message}
-                required
-              />
+                <Field
+                  label="Message"
+                  placeholder="How can we help?"
+                  as="textarea"
+                  value={formData.message}
+                  onChange={(e) => handleChange("message", e.target.value)}
+                  error={fieldErrors?.message}
+                  required
+                />
 
-              <Button type="submit" disabled={loading}>
-                {loading ? "Sending..." : "Send enquiry"}
-              </Button>
-            </form>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Sending..." : "Send enquiry"}
+                </Button>
+              </form>
+            )}
           </FormCard>
         </div>
       </section>

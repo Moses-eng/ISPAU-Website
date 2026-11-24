@@ -1,0 +1,87 @@
+import { useEffect, useState } from "react"
+import useMembershipWorkspace from "@/hooks/useMembershipWorkspace"
+import { membershipService } from "@/services/membershipService"
+import { navigateTo } from "@/app/navigation"
+import MembershipApplication from "./MembershipApplication"
+import LoadingState from "@/components/dashboard/LoadingState"
+import EmptyState from "@/components/dashboard/EmptyState"
+import Button from "@/components/ui/Button"
+
+export default function PublicApplication() {
+  const { state } = useMembershipWorkspace()
+  const [id, setId] = useState("")
+  const [error, setError] = useState("")
+  const [feedback] = useState("")
+
+  useEffect(() => {
+    try {
+      const created = membershipService.startPublicApplication()
+      setId(created.id)
+
+      // Persist the freshly-created draft so MembershipApplication
+      // (which reads sessionStorage on mount) can hydrate from it.
+      sessionStorage.setItem(
+        "ispau.draft_application",
+        JSON.stringify(created),
+      )
+    } catch {
+      setError("Unable to open the application. Please refresh and try again.")
+    }
+
+    const leave = () => {
+      if (
+        !/^\/portal\/?$/.test(location.pathname) ||
+        location.hash.replace(/^#\/?/, "") !== "application"
+      )
+        membershipService.releasePublicApplication()
+    }
+    addEventListener("popstate", leave)
+    addEventListener("hashchange", leave)
+    return () => {
+      removeEventListener("popstate", leave)
+      removeEventListener("hashchange", leave)
+    }
+  }, [])
+
+  if (error) return <EmptyState title="Application unavailable" text={error} />
+
+  const application = state.applications.find((a) => a.id === id)
+  if (!application) return <LoadingState />
+
+  if (application.stage !== "Draft")
+    return (
+      <main className="workspace-demo-login">
+        <EmptyState
+          title="Application submitted"
+          text="Your application has been recorded. Sign in with your official organisation email to check its progress."
+          action={
+            <Button
+              onClick={() => {
+                membershipService.releasePublicApplication()
+                navigateTo("/#login")
+              }}
+            >
+              Sign in
+            </Button>
+          }
+        />
+      </main>
+    )
+
+  return (
+    <>
+      <MembershipApplication
+        go={(view) => {
+          if (view === "submitted") return
+          membershipService.releasePublicApplication()
+          navigateTo(`/#${view}`)
+        }}
+      />
+      {feedback && (
+        <p role="status" className="workspace-feedback">
+          {feedback}
+        </p>
+      )}
+    </>
+  )
+}

@@ -8,8 +8,9 @@ import SectionAccent from "@/components/ui/SectionAccent"
 import Tag from "@/components/ui/Tag"
 import type { View } from "@/types/View"
 import { mandates } from "@/features/public/data/mandates"
-import { sampleMembers } from "@/features/directory/data/sampleMembers"
 import { useEffect, useMemo, useState } from "react"
+import directoryService from "@/apiServices/directoryService"
+import type { PublicMember } from "@/types/PublicMember"
 
 import {
   heroSlideService,
@@ -17,7 +18,6 @@ import {
   type HeroSlideView,
 } from "@/apiServices/heroSlideService"
 import { BASE_URL } from "@/apiServices/env"
-
 
 // ------------------------------------------------------------
 // Server → view adapter
@@ -41,6 +41,9 @@ export default function Home({ go }: { go: (v: View) => void }) {
   const [paused, setPaused] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
 
+  // ---------- members loaded from directoryService ----------
+  const [members, setMembers] = useState<PublicMember[]>([])
+
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -52,6 +55,14 @@ export default function Home({ go }: { go: (v: View) => void }) {
       }
       setLoaded(true)
     })()
+
+    void directoryService.list().then((res) => {
+      if (cancelled) return
+      if (res.success && res.data) {
+        setMembers(res.data)
+      }
+    })
+
     return () => {
       cancelled = true
     }
@@ -279,10 +290,10 @@ export default function Home({ go }: { go: (v: View) => void }) {
           text="Discover the organisations participating in ISPAU."
         />
         <div className="member-logo-rail">
-          {sampleMembers.slice(0, 6).map((member) => (
+          {members.slice(0, 6).map((member) => (
             <div key={member.id}>
               <CompanyLogo member={member} />
-              <small>{member.name}</small>
+              <small>{member.legal_name || member.name}</small>
             </div>
           ))}
         </div>
@@ -323,4 +334,3 @@ export default function Home({ go }: { go: (v: View) => void }) {
     </PublicShell>
   )
 }
-

@@ -89,13 +89,14 @@ export interface MembershipApplicationPayload {
   directoryConsent?: boolean;
   promotionalConsent?: boolean;
 
-  // Files
+  // Files: supports single File or File[] per category
   uploads?: {
-    registrationEvidence?: File | null;
-    licenceEvidence?: File | null;
-    authorityEvidence?: File | null;
-    pdpoEvidence?: File | null;
+    registrationEvidence?: File | File[] | null;
+    licenceEvidence?: File | File[] | null;
+    authorityEvidence?: File | File[] | null;
+    pdpoEvidence?: File | File[] | null;
     publicLogo?: File | null;
+    [key: string]: File | File[] | null | undefined;
   };
 }
 
@@ -193,9 +194,15 @@ const serializeFormData = (payload: MembershipApplicationPayload): FormData => {
   }
 
   if (payload.uploads) {
-    for (const [uploadKey, file] of Object.entries(payload.uploads)) {
-      if (file instanceof File) {
-        form.append(`uploads[${uploadKey}]`, file);
+    for (const [uploadKey, val] of Object.entries(payload.uploads)) {
+      if (Array.isArray(val)) {
+        val.forEach((file) => {
+          if (file instanceof File) {
+            form.append(`uploads[${uploadKey}][]`, file);
+          }
+        });
+      } else if (val instanceof File) {
+        form.append(`uploads[${uploadKey}]`, val);
       }
     }
   }
@@ -205,7 +212,6 @@ const serializeFormData = (payload: MembershipApplicationPayload): FormData => {
 
 class WebApplicationService {
   async submitApplication(payload: MembershipApplicationPayload): Promise<WebApplicationResponse> {
-    console.log("APP payload"+JSON.stringify(payload))
     try {
       const form = serializeFormData(payload);
       const res = await axiosClient.post(API_PUBLIC_APPLICATIONS_CREATE, form, {
@@ -228,6 +234,7 @@ class WebApplicationService {
       const res = await axiosClient.post(API_PUBLIC_APPLICATIONS_DRAFT, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      sessionStorage.removeItem("ispau.draft_application");
 
       return {
         success: true,

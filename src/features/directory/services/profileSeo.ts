@@ -48,7 +48,7 @@ export function profileMetadata(member: PublicMember, origin: string) {
     .replace(/\s+/g, " ")
     .slice(0, 160)
   const canonical = origin ? origin + profilePath(member) : ""
-  const website = safeWebsite(member.website)
+  // const website = safeWebsite(member.website)
   return {
     title: `${member.name} | ISP Company Profile | ISPAU`,
     description,
@@ -63,7 +63,7 @@ export function profileMetadata(member: PublicMember, origin: string) {
         name: member.name,
         description: member.description,
         ...(canonical ? { "@id": `${canonical}#organisation` } : {}),
-        ...(website ? { url: website, sameAs: [website] } : {}),
+        // ...(website ? { url: website, sameAs: [website] } : {}),
         ...(member.email ? { email: member.email } : {}),
         ...(member.phone ? { telephone: member.phone } : {}),
         ...(member.coverage.length ? { areaServed: member.coverage } : {}),
@@ -153,6 +153,7 @@ export function profileContent(member: PublicMember) {
   const e = escapeHtml
   const list = (items: string[]) =>
     `<ul>${items.map((item) => `<li>${e(item)}</li>`).join("")}</ul>`
-  const website = safeWebsite(member.website)
+  // const website = safeWebsite(member.website)
+  const website =""
   return `<div class="public-site"><main><section class="section"><a href="/members/">Our Members</a><h1>${e(member.name)}</h1><p>${e(member.description)}</p><h2>Services offered</h2>${list(member.services)}<h2>Regions served</h2>${list(member.coverage)}<h2>Public business details</h2>${member.city || member.district ? `<p>${e([member.city, member.district].filter(Boolean).join(", "))}</p>` : ""}${website ? `<p><a href="${e(website)}">Official website</a></p>` : ""}${member.email ? `<p><a href="mailto:${e(member.email)}">${e(member.email)}</a></p>` : ""}${member.phone ? `<p>${e(member.phone)}</p>` : ""}<p>Membership is not regulatory certification.</p></section></main></div>`
 }

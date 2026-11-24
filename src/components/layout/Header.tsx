@@ -19,7 +19,9 @@ export default function Header({ go }: { go: (view: View) => void }) {
   const compact = useMediaQuery("(max-width: 1100px)")
   const headerRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
-  const currentView = location.hash.replace("#", "") || "home"
+  const currentView = /^\/blog(?:\/|$)/.test(location.pathname)
+    ? "blog"
+    : location.hash.replace(/^#\/?/, "").split("?")[0] || "home"
 
   useEffect(() => {
     setOpen(false)
@@ -91,29 +93,17 @@ export default function Header({ go }: { go: (view: View) => void }) {
                 key={view}
                 type="button"
                 className={currentView === view ? "active" : ""}
+                aria-current={currentView === view ? "page" : undefined}
                 onClick={() => navigate(view)}
               >
                 {label}
               </button>
             ),
           )}
-          <span className="nav-actions">
-            <NavigationDropdown
-              id="account-menu"
-              label="Member Login"
-              icon="account"
-              items={accountNavigation}
-              open={activeMenu === "account"}
-              onToggle={() =>
-                setActiveMenu(activeMenu === "account" ? null : "account")
-              }
-              onNavigate={navigate}
-            />
-          </span>
         </nav>
         <div className="header-controls">
           <Button className="header-apply" onClick={() => navigate("apply")}>
-            Apply for Membership
+            {compact ? "Apply" : "Apply for Membership"}
           </Button>
           <MenuToggle
             open={open}
@@ -123,6 +113,18 @@ export default function Header({ go }: { go: (view: View) => void }) {
             }}
             controls="public-navigation"
             buttonRef={toggleRef}
+          />
+          <NavigationDropdown
+            id="account-menu"
+            label="Login"
+            icon="account"
+            items={accountNavigation}
+            open={activeMenu === "account"}
+            onToggle={() => {
+              setOpen(false)
+              setActiveMenu(activeMenu === "account" ? null : "account")
+            }}
+            onNavigate={navigate}
           />
         </div>
       </div>

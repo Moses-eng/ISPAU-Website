@@ -5,47 +5,50 @@ import PageHero from "@/components/ui/PageHero"
 import PublicShell from "@/components/layout/PublicShell"
 import SectionTitle from "@/components/ui/SectionTitle"
 import type { View } from "@/types/View"
-import { heroSlides } from "@/features/public/data/heroSlides"
 import { tierService, type PublicTier } from "@/apiServices/tierService"
-const formatFee = (cost: number): string => {return `USD ${cost}/year`}
+
+const formatFee = (cost: number): string => {
+  return `USD ${cost}/year`
+}
 
 export default function Membership({ go }: { go: (v: View) => void }) {
-    const [tiers, setTiers] = useState<PublicTier[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+  const [tiers, setTiers] = useState<PublicTier[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-    useEffect(() => {
-      let cancelled = false
+  useEffect(() => {
+    let cancelled = false
 
-      ;(async () => {
-        setLoading(true)
-        const res = await tierService.listPublic()
-        if (cancelled) return
+    ;(async () => {
+      setLoading(true)
+      const res = await tierService.listPublic()
+      if (cancelled) return
 
-        if (res.success && res.data) {
-          setTiers(res.data)
-          setError(null)
-        } else {
-          setTiers([])
-          setError(res.message)
-        }
-        setLoading(false)
-      })()
-
-      return () => {
-        cancelled = true
+      if (res.success && res.data) {
+        setTiers(res.data)
+        setError(null)
+      } else {
+        setTiers([])
+        setError(res.message)
       }
-    }, [])
+      setLoading(false)
+    })()
 
-    // Featured card: keep the previous visual rule — the second tier.
-    const featuredIndex = tiers.length > 1 ? 1 : -1
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Featured card: keep the previous visual rule — the second tier.
+  const featuredIndex = tiers.length > 1 ? 1 : -1
+
   return (
     <PublicShell go={go}>
       <PageHero
         eyebrow="Membership"
         title="Membership that connects your organisation to the industry."
         text="Explore the available tiers, prepare your documents and apply online. ISPAU reviews each application, confirms the appropriate tier and communicates the admission decision."
-        image={heroSlides[2]}
+        pageName="membership"
       >
         <Button onClick={() => go("apply")}>Apply Now</Button>
         <Button kind="secondary" onClick={() => go("login")}>
@@ -55,6 +58,7 @@ export default function Membership({ go }: { go: (v: View) => void }) {
           Already a member? Update your details
         </button>
       </PageHero>
+
       <section className="section">
         <SectionTitle
           eyebrow="Membership tiers"
@@ -165,44 +169,7 @@ export default function Membership({ go }: { go: (v: View) => void }) {
           </div>
         </div>
       </section>
-      <section className="soft-section">
-        <div className="section">
-          <SectionTitle
-            eyebrow="How to join"
-            title="From application to activation"
-          />
-          <div className="steps">
-            {[
-              [
-                "Apply",
-                "Submit your organisation’s details and supporting documents.",
-              ],
-              [
-                "Verification",
-                "The membership team checks the information and requests clarification if needed.",
-              ],
-              [
-                "Decision",
-                "An authorised decision maker confirms the outcome and approved tier.",
-              ],
-              [
-                "Payment",
-                "Receive your proforma invoice and pay using the supplied instructions.",
-              ],
-              [
-                "Activation",
-                "Once payment receipt is confirmed, receive your member ID and welcome notice.",
-              ],
-            ].map(([a, b], i) => (
-              <div className="step" key={a}>
-                <span>{i + 1}</span>
-                <h3>{a}</h3>
-                <p>{b}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
       <section className="section two-col">
         <div>
           <SectionTitle

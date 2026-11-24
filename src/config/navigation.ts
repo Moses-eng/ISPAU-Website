@@ -6,6 +6,7 @@ export const publicNavigation: { label: string; view: View }[] = [
   { label: "About", view: "about" },
   { label: "Membership", view: "membership" },
   { label: "Services & Activities", view: "services" },
+  { label: "Blog", view: "blog" },
   { label: "Contact", view: "contact" },
 ]
 

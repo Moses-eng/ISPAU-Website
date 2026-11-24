@@ -47,17 +47,10 @@ export function normalizeStringArray(val: unknown): string[] {
 }
 
 export const resolveLogoUrl = (m: any): string | null => {
-  const logoPath = m.attachments?.publicLogo || m.attachments?.logo || m.logo_url || m.logoSrc;
+  const logoPath = m.attachments?.publicLogo;
   if (!logoPath) return null;
-  if (typeof logoPath === "string" && (logoPath.startsWith("http://") || logoPath.startsWith("https://"))) {
-    return logoPath;
-  }
-
-  const root = BASE_URL.replace(/\/api(\/v\d+)?\/?$/, "").replace(/\/$/, "");
-  const cleanPath = String(logoPath).replace(/^\/+/, "");
-  const path = cleanPath.startsWith("storage/") ? cleanPath : `storage/${cleanPath}`;
-
-  return `${root}/${path}`;
+  const logoUrl = BASE_URL+"/"+logoPath;
+  return logoUrl;
 };
 
 const formatMember = (m: any): PublicMember => {

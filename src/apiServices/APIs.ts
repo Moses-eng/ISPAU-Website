@@ -13,14 +13,7 @@ export const API_PUBLIC_HERO_SLIDES_LIST = BASE_URL + '/api/v1/public/hero-slide
 export const API_PUBLIC_BANNERS_LIST   = BASE_URL + '/api/v1/public/banners/list';
 export const API_PUBLIC_DIRECTORY_LIST = "/api/v1/public/directory/list";
 export const API_PUBLIC_DIRECTORY_SHOW = (id: string) => `/api/v1/public/directory/show/${id}`;
-
-// ============================================================
-// CONTACTS — ADMIN
-// ============================================================
-export const API_ADMIN_CONTACTS_LIST   = BASE_URL + "/api/v1/auth/admin/contacts/list";
-export const API_ADMIN_CONTACTS_SHOW   = (id: ResourceId) => BASE_URL + `/api/v1/auth/admin/contacts/show/${id}`;
-export const API_ADMIN_CONTACTS_UPDATE = BASE_URL + "/api/v1/auth/admin/contacts/update";
-export const API_ADMIN_CONTACTS_DELETE = BASE_URL + "/api/v1/auth/admin/contacts/delete";
+export const API_PUBLIC_DISPUTES_CREATE = BASE_URL + "/api/v1/public/disputes/store";
 
 
 
@@ -47,3 +40,15 @@ export const API_APPLICANT_NOTIFICATIONS_BULK_DELETE = BASE_URL + "/api/v1/appli
 export const API_APPLICANT_NOTIFICATIONS_SHOW        = (id: ResourceId) =>BASE_URL + `/api/v1/applicant/notifications/${id}`;
 export const API_APPLICANT_NOTIFICATIONS_MARK_READ   = (id: ResourceId) =>BASE_URL + `/api/v1/applicant/notifications/${id}/read`;
 export const API_APPLICANT_NOTIFICATIONS_DELETE      = (id: ResourceId) =>BASE_URL + `/api/v1/applicant/notifications/${id}`;
+export const API_APPLICANT_RECEIPTS_UPLOAD = BASE_URL + '/api/v1/auth/receipts/upload';
+
+// ============================================================
+// APPLICANT — SUBSCRIPTION
+// ============================================================
+export const API_APPLICANT_SUBSCRIPTION = BASE_URL+'/api/v1/auth/applicant/subscription';
+
+// ============================================================
+// BLOG — PUBLIC
+// ============================================================
+export const API_PUBLIC_BLOG_LIST = BASE_URL + '/api/v1/public/blog/list';
+export const API_PUBLIC_BLOG_SHOW = (slug: string) =>BASE_URL + `/api/v1/public/blog/show/${encodeURIComponent(slug)}`;

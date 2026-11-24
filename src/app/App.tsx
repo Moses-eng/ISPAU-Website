@@ -7,6 +7,7 @@ import Home from "@/features/public/pages/Home"
 import About from "@/features/public/pages/About"
 import Membership from "@/features/public/pages/Membership"
 import Services from "@/features/public/pages/Services"
+import Blog from "@/features/public/pages/Blog"
 import Contact from "@/features/public/pages/Contact"
 import Privacy from "@/features/public/pages/Privacy"
 import Directory from "@/features/directory/pages/Directory"
@@ -51,8 +52,13 @@ export default function App() {
   const directoryPath = /^\/members\/?$/.test(pathname)
   const isCompanyProfile = !directoryPath && pathname.startsWith("/members/")
 
+  const blogSlug = pathname.match(/^\/blog\/([^/]+)\/?$/)?.[1] || ""
   const view = (
-    directoryPath
+    /^\/blog\/?$/.test(pathname)
+      ? "blog"
+      : pathname.startsWith("/blog/")
+        ? "blog-post"
+        : directoryPath
       ? "directory"
       : isCompanyProfile
       ? "company-profile"
@@ -60,6 +66,7 @@ export default function App() {
   ) as View
 
   const go = (next: View) => {
+    if (next === "blog") return navigateTo("/blog/")
     if (next === "directory") return navigateTo("/members/")
     if (staffAliases[next]) return navigateTo(`/staff#/${staffAliases[next]}`)
     if (portalAliases[next])
@@ -79,6 +86,8 @@ export default function App() {
     about: <About go={go} />,
     membership: <Membership go={go} />,
     services: <Services go={go} />,
+    blog: <Blog go={go} />,
+    "blog-post": <Blog key={blogSlug} go={go} slug={blogSlug || "unavailable"} />,
     contact: <Contact go={go} />,
     privacy: <Privacy go={go} />,
     directory: <Directory go={go} />,
@@ -113,10 +122,12 @@ export default function App() {
 
   return (
     <>
-      <ProfileSeo
-        directory={view === "directory"}
-        unavailable={view === "company-profile" && !memberId}
-      />
+      {view !== "blog" && view !== "blog-post" && (
+        <ProfileSeo
+          directory={view === "directory"}
+          unavailable={view === "company-profile" && !memberId}
+        />
+      )}
       {pages[view] || pages.home}
     </>
   )

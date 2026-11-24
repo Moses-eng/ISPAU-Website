@@ -29,7 +29,8 @@ export default function ProfileSeo({
         }
     const canIndex =
       indexable &&
-      (directory || Boolean(member && !member.isPreview)) &&
+      // (directory || Boolean(member && !member.isPreview)) &&
+      (directory || Boolean(member)) &&
       !unavailable
     document.title = metadata.title
     const meta = (name: string, content: string, property = false) => {

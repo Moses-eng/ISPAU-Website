@@ -1,13 +1,5 @@
-// src/apiServices/contactService.ts
-
 import axiosClient from './axiosClient';
-import {
-  API_ADMIN_CONTACTS_LIST,
-  API_ADMIN_CONTACTS_SHOW,
-  API_ADMIN_CONTACTS_UPDATE,
-  API_ADMIN_CONTACTS_DELETE,
-  API_PUBLIC_CONTACTS_CREATE,
-} from './APIs';
+import { API_PUBLIC_CONTACTS_CREATE } from './APIs';
 
 export type ContactStatus = 'active' | 'inactive' | 'archived';
 
@@ -19,8 +11,8 @@ export interface Contact {
   message: string;
   enquiry_type: string;
   status: ContactStatus;
-  created_at: string;
-  updated_at: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface ContactPayload {
@@ -30,12 +22,6 @@ export interface ContactPayload {
   message: string;
   enquiry_type: string;
   status?: ContactStatus;
-}
-
-interface ApiListResponse {
-  success: boolean;
-  message: string;
-  data: Contact[] | null;
 }
 
 interface ApiSingleResponse {
@@ -87,7 +73,7 @@ const handleError = (
   if (e?.request) {
     return {
       success: false,
-      message: 'No internet connection.',
+      message: 'No internet connection. Please check your network.',
       data: null,
       fieldErrors: null,
     };
@@ -102,37 +88,6 @@ const handleError = (
 };
 
 class ContactService {
-  // GET /api/v1/auth/admin/contacts/list
-  async list(): Promise<ApiListResponse> {
-    try {
-      const res = await axiosClient.get(API_ADMIN_CONTACTS_LIST);
-      return {
-        success: true,
-        message: res.data?.message ?? 'Loaded.',
-        data: res.data?.data?.items ?? [],
-      };
-    } catch (error) {
-      const e = handleError(error, 'Failed to load contacts.');
-      return { success: false, message: e.message, data: null };
-    }
-  }
-
-  // GET /api/v1/auth/admin/contacts/show/{id}
-  async show(id: string): Promise<ApiSingleResponse> {
-    try {
-      const res = await axiosClient.get(API_ADMIN_CONTACTS_SHOW(id));
-      return {
-        success: true,
-        message: res.data?.message ?? 'Loaded.',
-        data: res.data?.data ?? null,
-      };
-    } catch (error) {
-      const e = handleError(error, 'Failed to load contact.');
-      return { success: false, message: e.message, data: null };
-    }
-  }
-
-  // POST /api/v1/public/contacts/store  (public — no auth)
   async create(payload: ContactPayload): Promise<ApiSingleResponse> {
     try {
       const res = await axiosClient.post(API_PUBLIC_CONTACTS_CREATE, {
@@ -143,62 +98,21 @@ class ContactService {
         enquiry_type: payload.enquiry_type,
         status: payload.status ?? 'active',
       });
+
       return {
-        success: true,
-        message: res.data?.message ?? 'Created.',
-        data: res.data?.data ?? null,
+        success: res.data?.status === 'success' || res.status === 200 || res.status === 201,
+        message: res.data?.message ?? 'Your enquiry has been received.',
+        // Backend returns `data.contact`
+        data: res.data?.data?.contact ?? res.data?.data ?? null,
       };
     } catch (error) {
-      const e = handleError(error, 'Failed to create contact.');
+      const e = handleError(error, 'Failed to send your enquiry. Please try again.');
       return {
         success: false,
         message: e.message,
         data: null,
         fieldErrors: e.fieldErrors,
       };
-    }
-  }
-
-  // POST /api/v1/auth/admin/contacts/update
-  // Body must include: updateId
-  async update(id: string, payload: ContactPayload): Promise<ApiSingleResponse> {
-    try {
-      const res = await axiosClient.post(API_ADMIN_CONTACTS_UPDATE, {
-        updateId: id,
-        name: payload.name,
-        work_email: payload.work_email,
-        organisation: payload.organisation,
-        message: payload.message,
-        enquiry_type: payload.enquiry_type,
-        status: payload.status ?? 'active',
-      });
-      return {
-        success: true,
-        message: res.data?.message ?? 'Updated.',
-        data: res.data?.data ?? null,
-      };
-    } catch (error) {
-      const e = handleError(error, 'Failed to update contact.');
-      return {
-        success: false,
-        message: e.message,
-        data: null,
-        fieldErrors: e.fieldErrors,
-      };
-    }
-  }
-
-  // DELETE /api/v1/auth/admin/contacts/delete
-  // Body must include: deleteId
-  async remove(id: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const res = await axiosClient.delete(API_ADMIN_CONTACTS_DELETE, {
-        data: { deleteId: id },
-      });
-      return { success: true, message: res.data?.message ?? 'Deleted.' };
-    } catch (error) {
-      const e = handleError(error, 'Failed to delete contact.');
-      return { success: false, message: e.message };
     }
   }
 }

@@ -4,10 +4,12 @@ export default function Dialog({
   title,
   children,
   onClose,
+  programmeHeader,
 }: {
   title: string
   children: ReactNode
   onClose: () => void
+  programmeHeader?: { image: string; description: string }
 }) {
   const titleId = useId()
   const ref = useRef<HTMLDialogElement>(null)
@@ -23,7 +25,7 @@ export default function Dialog({
   return (
     <dialog
       ref={ref}
-      className="workspace-dialog"
+      className={`workspace-dialog${programmeHeader ? " programme-dialog" : ""}`}
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault()
@@ -42,8 +44,16 @@ export default function Dialog({
         }
       }}
     >
-      <div className="flex items-center justify-between gap-4">
+      <div
+        className={
+          programmeHeader
+            ? "programme-dialog-header"
+            : "flex items-center justify-between gap-4"
+        }
+      >
+        {programmeHeader && <img src={programmeHeader.image} alt="" />}
         <h2 id={titleId}>{title}</h2>
+        {programmeHeader && <p>{programmeHeader.description}</p>}
         <Button kind="ghost" onClick={onClose} aria-label="Close dialog">
           ✕
         </Button>

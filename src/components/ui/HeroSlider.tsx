@@ -65,9 +65,8 @@ export default function HeroSlider({
           >
             <img src={s.image} alt={i === current ? s.name : ""} />
             <figcaption>
-              <strong>{s.description}</strong>
-              {s.caption !== s.description && <span>{s.caption}</span>}
-              <span>Photo: {s.credit}</span>
+              <strong>{s.name}</strong>
+              <span>{s.description}</span>
             </figcaption>
           </figure>
         ))}

@@ -60,7 +60,6 @@ export default function CompanyProfile({
 
   const servicesList = normalizeStringArray(member.services)
   const coverageList = normalizeStringArray(member.coverage)
-  const hasImage = Boolean(member.logo_url && !member.logo_url.toLowerCase().endsWith(".pdf"))
 
   return (
     <PublicShell go={go}>
@@ -71,26 +70,7 @@ export default function CompanyProfile({
           </button>
           <div className="company-profile-heading">
             <div className="member-logo-wrap large">
-              {hasImage ? (
-                <img
-                  src={member.logo_url!}
-                  alt={member.name}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    maxHeight: "120px",
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                    const sibling = e.currentTarget.nextElementSibling as HTMLElement | null
-                    if (sibling) sibling.style.display = "flex"
-                  }}
-                />
-              ) : null}
-              <span style={{ display: hasImage ? "none" : "flex", width: "100%", height: "100%" }}>
                 <CompanyLogo member={member} />
-              </span>
             </div>
             <div>
               <span className="eyebrow">ISPAU member profile</span>
