@@ -19,13 +19,19 @@ class ReceiptUploadedFinanceMail extends Mailable
     public function __construct(
         string $invoiceNumber,
         string $applicantName,
-        ?string $applicantEmail = null
+        ?string $applicantEmail = null,
+        ?string $portalUrl = null
     ) {
         $this->invoiceNumber  = $invoiceNumber;
         $this->applicantName  = $applicantName;
         $this->applicantEmail = $applicantEmail;
         $this->appName        = config('app.name', 'ISPAU');
-        $this->portalUrl = config('app.admin_frontend_url');
+
+        // Safe fallback resolution for portalUrl: constructor argument -> config -> env -> app.url -> '#'
+        $resolvedUrl = $portalUrl ?: env('ADMIN_FRONTEND_URL');
+
+
+        $this->portalUrl = rtrim((string) $resolvedUrl, '/');
     }
 
     public function build(): self

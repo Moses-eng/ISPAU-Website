@@ -40,6 +40,10 @@ use App\Modules\Banner\Repositories\BannerRepository;
 use App\Modules\Banner\RepositoryInterfaces\BannerRepositoryInterface;
 use App\Modules\Banner\Services\BannerAttachmentService;
 use App\Modules\Banner\Services\BannerService;
+use App\Modules\Blog\Interfaces\BlogServiceInterface;
+use App\Modules\Blog\Repositories\BlogRepository;
+use App\Modules\Blog\RepositoryInterfaces\BlogRepositoryInterface;
+use App\Modules\Blog\Services\BlogService;
 use App\Modules\Dispute\Interfaces\DisputeServiceInterface;
 use App\Modules\Dispute\Repositories\DisputeRepository;
 use App\Modules\Dispute\RepositoryInterfaces\DisputeRepositoryInterface;
@@ -79,6 +83,11 @@ use App\Modules\Statistics\Interfaces\StatisticsServiceInterface;
 use App\Modules\Statistics\Repositories\StatisticsRepository;
 use App\Modules\Statistics\RepositoryInterfaces\StatisticsRepositoryInterface;
 use App\Modules\Statistics\Services\StatisticsService;
+use App\Modules\Subscription\Interfaces\SubscriptionServiceInterface;
+use App\Modules\Subscription\Repositories\SubscriptionRepository;
+use App\Modules\Subscription\RepositoryInterfaces\SubscriptionRepositoryInterface;
+use App\Modules\Subscription\Services\SubscriptionService;
+use App\Modules\Subscription\Services\SubscriptionTrackerService;
 use App\Modules\Tier\Interfaces\TierServiceInterface;
 use App\Modules\Tier\RepositoryInterfaces\TierRepositoryInterface;
 use App\Modules\Tier\Repositories\TierRepository;
@@ -174,8 +183,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(StatisticsServiceInterface::class,StatisticsService::class,);
         $this->app->bind(StatisticsRepositoryInterface::class,StatisticsRepository::class,);
 
-        // … Banner bindings …
-        // … Banner bindings …
+        // … Subscription bindings …
+        $this->app->bind(SubscriptionRepositoryInterface::class,SubscriptionRepository::class);
+        $this->app->bind(SubscriptionServiceInterface::class,SubscriptionService::class);
+        $this->app->singleton(SubscriptionTrackerService::class);
+
+        // … Blog bindings …
+        $this->app->bind(BlogRepositoryInterface::class,BlogRepository::class);
+        $this->app->bind(BlogServiceInterface::class,BlogService::class);
         // … Banner bindings …
         // … Banner bindings …
         // … Banner bindings …
@@ -208,8 +223,8 @@ class AppServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(app_path('Modules/Invoice/Migrations'));
         $this->loadMigrationsFrom(app_path('Modules/Payment/Migrations'));
         $this->loadMigrationsFrom(app_path('Modules/Receipt/Migrations'));
-        // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
-        // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
+        $this->loadMigrationsFrom(app_path('Modules/Subscription/Migrations'));
+        $this->loadMigrationsFrom(app_path('Modules/Blog/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));

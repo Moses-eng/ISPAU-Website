@@ -42,4 +42,16 @@ class PaymentModel extends Model
     {
         return $this->paid_at !== null;
     }
+
+    /**
+     * Get payment number using ID.
+     */
+    public static function getPaymentNumber(?string $paymentId): ?string
+    {
+        if (! $paymentId) {
+            return null;
+        }
+        $number = static::find($paymentId);
+        return $number?->payment_no;
+    }
 }

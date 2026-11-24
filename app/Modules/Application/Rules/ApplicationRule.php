@@ -27,7 +27,7 @@ class ApplicationRule
             'entityType'            => 'required|string|max:255',
             'registrationCountry'   => 'required|string|max:255',
             'registrationReference' => 'required|string|max:255',
-            'businessEmail' => 'required|email|max:255|unique:applications,business_email',
+            'businessEmail'         => 'required|email|max:255|unique:applications,business_email',
             'businessPhone'         => 'required|string|max:30',
             'website'               => 'sometimes|nullable|string|max:255',
             'registeredAddress'     => 'required|string',
@@ -71,17 +71,48 @@ class ApplicationRule
 
             // Uploads
             'uploads'                  => 'sometimes|array',
-            'uploads.*'                => 'nullable|file|mimes:pdf,jpg,jpeg,png',
+            // 'uploads'                  => 'sometimes|array',
+            'uploads.*'                => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    $files = is_array($value) ? $value : [$value];
+                    foreach ($files as $file) {
+                        if ($file instanceof \Illuminate\Http\UploadedFile) {
+                            $ext = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: '');
+                            if (! in_array($ext, ['pdf', 'jpg', 'jpeg', 'png'])) {
+                                $fail("The document in {$attribute} must be a PDF, JPG, or PNG file.");
+                            }
+                            if ($file->getSize() > 10 * 1024 * 1024) {
+                                $fail("The document in {$attribute} must not exceed 10 MB.");
+                            }
+                        }
+                    }
+                },
+            ],
+
 
             'status'                   => ['sometimes', Rule::in(self::STATUS_OPTIONS)],
         ];
     }
 
-    public static function draftRules(): array
+    public static function newDraftRules(): array
     {
         return [
+            'legalName'     => 'sometimes|nullable|string|max:255',
+            'businessEmail' => ['required', 'email', 'max:255'],
+        ];
+    }
+
+    public static function draftRules(bool $doNotValidateEmail = false): array
+    {
+        $businessEmailRules = ['required', 'email', 'max:255'];
+
+        if (! $doNotValidateEmail) {
+            $businessEmailRules[] = Rule::unique('applications', 'business_email');
+        }
+
+        return [
             'id'                    => 'sometimes|nullable|uuid',
-            // 'password'              => 'sometimes|nullable|string|min:8',
             'legalName'             => 'sometimes|nullable|string|max:255',
             'tradingName'           => 'sometimes|nullable|string|max:255',
             'entityType'            => 'sometimes|nullable|string|max:255',
@@ -110,15 +141,13 @@ class ApplicationRule
             'invoiceAddress'        => 'sometimes|nullable|string',
             'uploads'               => 'sometimes|array',
             'uploads.*'             => 'nullable|file|mimes:pdf,jpg,jpeg,png',
-            'businessEmail' => [ 'required', 'email', 'max:255', Rule::unique('applications', 'business_email'),
-            ],
+            'businessEmail'         => $businessEmailRules,
         ];
     }
 
     public static function updateRules(string $applicationId): array
     {
         return [
-            // 'password'              => 'sometimes|nullable|string|min:8',
             'legalName'             => 'sometimes|string|max:255',
             'tradingName'           => 'sometimes|nullable|string|max:255',
             'entityType'            => 'sometimes|string|max:255',
@@ -160,5 +189,3 @@ class ApplicationRule
         );
     }
 }
-
-

@@ -5,6 +5,7 @@ namespace App\Modules\Application\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ApplicationAttachmentService
 {
@@ -14,9 +15,9 @@ class ApplicationAttachmentService
     /**
      * Store uploaded application files directly into public/application/{applicationId}
      *
-     * @param  string                       $applicationId
-     * @param  array<string, UploadedFile>  $uploads
-     * @return array<string, string>        map: uploadKey => relative path (e.g. application/{id}/registrationEvidence.pdf)
+     * @param  string                                           $applicationId
+     * @param  array<string, UploadedFile|array<UploadedFile>>  $uploads
+     * @return array<string, string|array<string>>             map: uploadKey => path or list of paths
      */
     public function storeAll(string $applicationId, array $uploads): array
     {
@@ -24,27 +25,44 @@ class ApplicationAttachmentService
         $relativeDir = self::BASE_DIR . '/' . $applicationId;
         $targetDir   = public_path($relativeDir);
 
-        // Ensure the directory exists with proper write permissions
         if (! File::isDirectory($targetDir)) {
             File::makeDirectory($targetDir, 0775, true, true);
         }
 
-        foreach ($uploads as $key => $file) {
-            if (! $file instanceof UploadedFile) {
+        foreach ($uploads as $key => $fileOrFiles) {
+            if (empty($fileOrFiles)) {
                 continue;
             }
 
             try {
-                $ext = $file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'bin';
-                $filename = "{$key}.{$ext}";
+                // Delete existing files matching this key before writing new ones
+                $this->deleteMatchingFiles($targetDir, $key);
 
-                // Delete any existing file with this key before moving the new one
-                $this->deleteMatchingFile($targetDir, $key);
+                if (is_array($fileOrFiles)) {
+                    $storedList = [];
+                    foreach ($fileOrFiles as $idx => $file) {
+                        if (! $file instanceof UploadedFile) {
+                            continue;
+                        }
 
-                // Move file directly into public/application/{applicationId}/
-                $file->move($targetDir, $filename);
+                        $ext = $file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'bin';
+                        $safeOrig = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+                        $filename = "{$key}_{$idx}_{$safeOrig}.{$ext}";
 
-                $stored[$key] = $relativeDir . '/' . $filename;
+                        $file->move($targetDir, $filename);
+                        $storedList[] = $relativeDir . '/' . $filename;
+                    }
+
+                    if (! empty($storedList)) {
+                        $stored[$key] = count($storedList) === 1 ? $storedList[0] : $storedList;
+                    }
+                } elseif ($fileOrFiles instanceof UploadedFile) {
+                    $ext = $fileOrFiles->getClientOriginalExtension() ?: $fileOrFiles->guessExtension() ?: 'bin';
+                    $filename = "{$key}.{$ext}";
+
+                    $fileOrFiles->move($targetDir, $filename);
+                    $stored[$key] = $relativeDir . '/' . $filename;
+                }
             } catch (\Throwable $e) {
                 Log::warning('Application attachment upload failed', [
                     'application_id' => $applicationId,
@@ -57,9 +75,6 @@ class ApplicationAttachmentService
         return $stored;
     }
 
-    /**
-     * Delete the entire application directory and all its files in public/application/{applicationId}
-     */
     public function deleteDirectory(string $applicationId): void
     {
         try {
@@ -75,9 +90,6 @@ class ApplicationAttachmentService
         }
     }
 
-    /**
-     * Delete an individual attachment file by relative or full path
-     */
     public function deleteFile(?string $path): void
     {
         if (! $path) return;
@@ -97,17 +109,15 @@ class ApplicationAttachmentService
         }
     }
 
-    /**
-     * Deletes any previous file matching key regardless of extension (e.g. key.pdf, key.png)
-     */
-    private function deleteMatchingFile(string $targetDir, string $key): void
+    private function deleteMatchingFiles(string $targetDir, string $key): void
     {
         $matches = glob($targetDir . '/' . $key . '.*');
-        if (! empty($matches)) {
-            foreach ($matches as $match) {
-                if (File::exists($match)) {
-                    File::delete($match);
-                }
+        $matchesMulti = glob($targetDir . '/' . $key . '_*');
+        $all = array_unique(array_merge($matches ?: [], $matchesMulti ?: []));
+
+        foreach ($all as $match) {
+            if (File::exists($match)) {
+                File::delete($match);
             }
         }
     }

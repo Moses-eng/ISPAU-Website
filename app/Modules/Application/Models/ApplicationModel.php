@@ -17,7 +17,7 @@ class ApplicationModel extends JwtAuthenticatable
     protected $fillable = [
         'legal_name', 'trading_name', 'entity_type', 'registration_country',
         'registration_reference', 'business_email', 'business_phone', 'website',
-        'password',
+        'password','application_number',
         'registered_address', 'uganda_address',
         'category', 'operational_status', 'requested_tier', 'customer_facing',
         'pdpo_status', 'licence_relevant',
@@ -189,6 +189,17 @@ class ApplicationModel extends JwtAuthenticatable
 
         $applicant = static::find($applicantId);
         return $applicant?->legal_name ?? 'Valued Applicant';
+    }
+
+    /**
+     * Get application number using ID.
+     */
+    public static function getApplicationNumber(?string $applicationId): ?string
+    {
+        if (! $applicationId) {
+            return null;
+        }
+        return static::find($applicationId)?->application_number;
     }
 }
 

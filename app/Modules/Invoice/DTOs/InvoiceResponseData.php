@@ -12,6 +12,7 @@ class InvoiceResponseData
         public readonly string  $id,
         public readonly string  $applicant_id,
         public readonly string  $applicant_legal_name,
+        public readonly string  $applicantion_number,
         public readonly string  $invoice_number,
         public readonly string  $total,
         public readonly string  $status,
@@ -31,9 +32,10 @@ class InvoiceResponseData
     public static function fromModel(
         InvoiceModel $m,
         array $applicantNames = [],
+        array $applicantionNumbers = [],
         array $confirmedNames = [],
     ): self {
-        // 1. Resolve applicant legal name (map lookup -> static DB fallback -> default)
+        // 1. Resolve applicant legal name
         $legalName = $applicantNames[$m->applicant_id]
             ?? ApplicationModel::getApplicateName($m->applicant_id)
             ?? 'Valued Applicant';
@@ -44,10 +46,16 @@ class InvoiceResponseData
             $confirmedByName = $confirmedNames[$m->confirmed_by]
                 ?? SystemUserModel::getSystemUserName($m->confirmed_by);
         }
+         // 3. Application Nuber
+        $applicationNumber = $applicantionsNumbers[$m->applicant_id]
+            ?? ApplicationModel::getApplicationNumber($m->applicant_id)
+            ?? ' APP';
+
 
         return new self(
             id:                   $m->id,
             applicant_id:         $m->applicant_id,
+            applicantion_number:   $applicationNumber,
             applicant_legal_name: $legalName,
             invoice_number:       $m->invoice_number,
             total:                (string) $m->total,
@@ -72,6 +80,7 @@ class InvoiceResponseData
             'applicant_id'         => $this->applicant_id,
             'applicant_legal_name' => $this->applicant_legal_name,
             'invoice_number'       => $this->invoice_number,
+            'applicantion_number'       => $this->applicantion_number,
             'total'                => $this->total,
             'status'               => $this->status,
             'invoice_date'         => $this->invoice_date,

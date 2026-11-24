@@ -22,6 +22,7 @@ class ApplicationResponseData
             id: $m->id,
             payload: [
                 'legal_name'             => $m->legal_name,
+                'application_number'     => $m->application_number,
                 'trading_name'           => $m->trading_name,
                 'entity_type'            => $m->entity_type,
                 'registration_country'   => $m->registration_country,

@@ -219,23 +219,37 @@ class ReceiptService implements ReceiptServiceInterface
 
     private function sendFinanceAlertEmail(string $invoiceNumber, string $applicantName, ?string $applicantEmail): void
     {
-            Log::warning($invoiceNumber. $applicantName . $applicantEmail);
-
-        $financeEmail = env('FINANCE_NOTIFICATION_EMAIL');
+        // Support both config and direct env lookup (works with or without config:cache)
+        $financeEmail = config('mail.finance_notification_email')
+            ?: env('FINANCE_NOTIFICATION_EMAIL');
 
         if (empty($financeEmail)) {
-            Log::warning('Finance receipt email skipped: FINANCE_NOTIFICATION_EMAIL not configured.');
+            Log::warning('Finance receipt email skipped: FINANCE_NOTIFICATION_EMAIL is empty or not configured in .env.');
             return;
         }
 
+        $adminPortalUrl = rtrim((string) env('ADMIN_FRONTEND_URL'));
+
         try {
             Mail::to($financeEmail)->send(
-                new ReceiptUploadedFinanceMail($invoiceNumber, $applicantName, $applicantEmail)
+                new ReceiptUploadedFinanceMail(
+                    invoiceNumber: $invoiceNumber,
+                    applicantName: $applicantName,
+                    applicantEmail: $applicantEmail,
+                    portalUrl: $adminPortalUrl
+                )
             );
+
+            Log::info('Finance receipt alert email successfully dispatched', [
+                'recipient'      => $financeEmail,
+                'invoice_number' => $invoiceNumber,
+            ]);
         } catch (\Throwable $e) {
             Log::error('Failed to dispatch receipt upload email to finance', [
+                'recipient'      => $financeEmail,
                 'invoice_number' => $invoiceNumber,
                 'error'          => $e->getMessage(),
+                'trace'          => $e->getTraceAsString(),
             ]);
         }
     }

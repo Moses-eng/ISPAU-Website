@@ -51,7 +51,8 @@ Route::prefix('v1/public/applications/auth')->group(function () {
 
 // ---------- Applicant profile (protected) ----------
 Route::prefix('v1/auth/applicant')
-    ->middleware(['auth:applicants'])->group(function () {
+    ->middleware(['auth:applicants'])
+    ->group(function () {
         Route::get ('/profile/show/{id}', [ApplicantProfileController::class, 'show']);
         Route::post('/logout',       [ApplicantAuthController::class, 'logout']);
         Route::match(['put','patch'], 'profile/update', [ApplicantProfileController::class, 'update']);

@@ -9,6 +9,7 @@ interface ApplicationRepositoryInterface
 {
     public function all(array $filters = []): Collection;
     public function findById(string $id): ?ApplicationModel;
+    public function findByEmail(string $email): ?ApplicationModel;
     public function create(array $data): ApplicationModel;
     public function update(ApplicationModel $application, array $data): ApplicationModel;
     public function delete(ApplicationModel $application): bool;

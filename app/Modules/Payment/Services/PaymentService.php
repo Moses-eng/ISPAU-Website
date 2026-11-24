@@ -11,6 +11,7 @@ use App\Modules\Payment\DTOs\PaymentResponseData;
 use App\Modules\Payment\Interfaces\PaymentServiceInterface;
 use App\Modules\Payment\Models\PaymentModel;
 use App\Modules\Payment\RepositoryInterfaces\PaymentRepositoryInterface;
+use App\Modules\Subscription\Interfaces\SubscriptionServiceInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -99,6 +100,28 @@ class PaymentService implements PaymentServiceInterface
                 'payment_no' => $createdPayment->payment_no,
                 'recipient'  => $applicantMail,
             ]);
+
+        // ============================================================
+        // NEW: record the subscription for this payment
+        // ============================================================
+        if ($createdPayment->invoice_id && $createdPayment->applicant_id) {
+            try {
+                app(SubscriptionServiceInterface::class)
+                    ->recordFromPayment(
+                        applicantId: $createdPayment->applicant_id,
+                        invoiceId:   $createdPayment->invoice_id,
+                        paymentId:   $createdPayment->payment_id,
+                    );
+            } catch (\Throwable $e) {
+                // Never fail the payment because subscription bookkeeping failed
+                Log::error('Subscription recording failed after payment', [
+                    'payment_id'   => $createdPayment->payment_id,
+                    'applicant_id' => $createdPayment->applicant_id,
+                    'invoice_id'   => $createdPayment->invoice_id,
+                    'error'        => $e->getMessage(),
+                ]);
+            }
+        }
 
             return PaymentActionResponseData::success(
                 message: "Payment {$createdPayment->payment_no} created successfully.",

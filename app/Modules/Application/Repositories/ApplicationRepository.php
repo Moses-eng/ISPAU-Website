@@ -61,6 +61,10 @@ class ApplicationRepository implements ApplicationRepositoryInterface
     {
         return $this->model->find($id);
     }
+    public function findByEmail(string $email): ?ApplicationModel
+    {
+        return $this->model->where('business_email', $email)->first();
+    }
     public function create(array $data): ApplicationModel
     {
         return $this->model->create($data);

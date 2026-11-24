@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Application\DTOs\ApplicationRequestData;
 use App\Modules\Application\Interfaces\ApplicationServiceInterface;
 use App\Modules\Application\Models\ApplicationModel;
+use App\Modules\Application\RepositoryInterfaces\ApplicationRepositoryInterface;
 use App\Modules\Application\Rules\ApplicationRule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class ApplicationController extends Controller
 {
     public function __construct(
         private readonly ApplicationServiceInterface $service,
+        private readonly ApplicationRepositoryInterface $repository,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -42,14 +44,32 @@ class ApplicationController extends Controller
     // POST /api/v1/public/applications/draft
     public function saveDraft(Request $request): JsonResponse
     {
-        $request->validate(ApplicationRule::draftRules());
+        $businessEmail = (string) $request->input('businessEmail');
+        $existingDraft = ! empty($businessEmail) ? $this->repository->findByEmail($businessEmail) : null;
+
+        // 1. First time: no existing record found, validate without requiring 'id' (uuid)
+        if (! $existingDraft) {
+            $request->validate(ApplicationRule::newDraftRules());
+
+            $response = $this->service->saveDraft(
+                ApplicationRequestData::fromRequest($request, 'Draft', newDraft: true)
+            );
+
+            return response()->json($response->toArray(), $response->isSuccess() ? 200 : 400);
+        }
+
+        // 2. Existing draft: validate with standard draft rules (skipping unique check on the existing email)
+        $doNotValidateEmail = true;
+        $request->validate(ApplicationRule::draftRules($doNotValidateEmail));
 
         $response = $this->service->saveDraft(
-            ApplicationRequestData::fromRequest($request, 'Draft')
+            ApplicationRequestData::fromRequest($request, 'Draft', newDraft: false)
         );
 
         return response()->json($response->toArray(), $response->isSuccess() ? 200 : 400);
     }
+
+
 
     public function update(Request $request): JsonResponse
     {
@@ -75,11 +95,13 @@ class ApplicationController extends Controller
 
         return response()->json($response->toArray(), $response->isSuccess() ? 200 : 400);
     }
+
     public function downloadSummaryPdf(string $id)
     {
         return $this->service->downloadSummaryPdf($id);
     }
-        public function destroy(Request $request): JsonResponse
+
+    public function destroy(Request $request): JsonResponse
     {
         $request->validate(['deleteId' => 'required|uuid']);
 
