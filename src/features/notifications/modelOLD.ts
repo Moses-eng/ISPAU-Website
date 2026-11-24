@@ -1,4 +1,4 @@
-import { tradeCreditEligibility } from "../trade-credit/services/access.ts"
+import { tradeCreditEligibility } from "../trade-credit-error/services/access.ts"
 export type AlertActor = {
   id: string
   kind: string

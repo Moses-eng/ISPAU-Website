@@ -8,6 +8,7 @@ export const roleLabels: Record<StaffRole, string> = {
   super_admin: "Super Admin",
   membership_admin: "Membership Admin",
   finance_admin: "Finance Admin",
+  operations_officer: "Operations Officer",
 }
 export const demoStaff: Actor[] = [
   {
@@ -41,6 +42,7 @@ export const staffSections = [
   { id: "applications", label: "Applications", icon: "file" },
   { id: "members", label: "Members", icon: "building" },
   { id: "billing", label: "Billing", icon: "file" },
+  { id: "trade-credit", label: "Trade Credit", icon: "file" },
   { id: "communications", label: "Communications", icon: "mail" },
   { id: "membership-activity", label: "Activity history", icon: "file" },
   { id: "finance-activity", label: "Activity history", icon: "file" },
@@ -66,6 +68,7 @@ export const staffNavigation = [
   { id: "overview", label: "Overview", icon: "chart" },
   { id: "membership", label: "Membership", icon: "building" },
   { id: "finance", label: "Finance", icon: "file" },
+  { id: "trade-credit", label: "Trade Credit", icon: "file" },
   { id: "reports", label: "Reports", icon: "chart" },
   { id: "staff-activity", label: "Staff activity", icon: "file" },
   { id: "administration", label: "Administration", icon: "lock" },

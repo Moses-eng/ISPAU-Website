@@ -1,10 +1,16 @@
-import { tradeCreditEligibility } from "../trade-credit/services/access.ts"
+import { tradeCreditEligibility } from "../trade-credit-error/services/access.ts"
+import statisticsService, {
+  type InvoiceStatistics,
+} from "@/apiServices/statisticsService"
+import systemUserAuthStore from "@/apiServices/systemUserAuthStore"
+
 export type AlertActor = {
   id: string
   kind: string
   roles: string[]
   organisationId?: string
 }
+
 type Application = {
   id: string
   organisationId: string
@@ -16,7 +22,9 @@ type Application = {
   values: Record<string, string | boolean>
   clarifications: { response?: string }[]
 }
+
 type Invoice = {
+  active?: boolean
   id: string
   applicationId: string
   status: string
@@ -24,6 +32,7 @@ type Invoice = {
   periodEnd: string
   taxInvoice?: unknown
 }
+
 type Notice = {
   id: string
   applicationId: string
@@ -31,11 +40,13 @@ type Notice = {
   body: string
   date: string
 }
+
 export type AlertState = {
   applications: Application[]
   invoices: Invoice[]
   notices: Notice[]
 }
+
 export type WorkspaceAlert = {
   id: string
   title: string
@@ -43,19 +54,81 @@ export type WorkspaceAlert = {
   route: string
   date: string
 }
+
 export type ReviewTask = { id: string; updatedAt: string }
+
+export const BADGES_UPDATED_EVENT = "ispau:badges:updated"
+
+// In-memory cache for live backend statistics
+let cachedBadges: InvoiceStatistics = {
+  finance: 0,
+  applicants: 0,
+  other: 0,
+}
+
+/**
+ * Fetch badge statistics from the server and update the in-memory cache.
+ */
+export async function fetchBadgeCounts(financeId?: string): Promise<InvoiceStatistics> {
+  try {
+    const res = await statisticsService.statisticsBadges(financeId)
+    if (res.success && res.data) {
+      cachedBadges = {
+        finance: Number(res.data.finance) || 0,
+        applicants: Number(res.data.applicants) || 0,
+        other: Number(res.data.other) || 0,
+      }
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent(BADGES_UPDATED_EVENT, { detail: cachedBadges }),
+        )
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load badge statistics:", err)
+  }
+
+  return cachedBadges
+}
+
+/**
+ * Get the current cached badge counts.
+ */
+export function getBadgeCounts(): InvoiceStatistics {
+  return cachedBadges
+}
+
+// Initial fetch & listener for login/logout auth changes
+if (typeof window !== "undefined") {
+  if (systemUserAuthStore.isAuthenticated()) {
+    void fetchBadgeCounts()
+  }
+
+  window.addEventListener(systemUserAuthStore.AUTH_EVENT, () => {
+    if (systemUserAuthStore.isAuthenticated()) {
+      void fetchBadgeCounts()
+    } else {
+      cachedBadges = { finance: 0, applicants: 0, other: 0 }
+    }
+  })
+}
+
 export function workspaceAlerts(
   actor: AlertActor,
   state: AlertState,
   reviewTasks: ReviewTask[] = [],
   today?: string,
+  overrideStats?: InvoiceStatistics | null,
 ) {
   const items: WorkspaceAlert[] = []
   const counts: Record<string, number> = {}
+
   const add = (item: WorkspaceAlert, section?: string) => {
     items.push(item)
-    if (section) counts[section] = (counts[section] || 0) + 13
+    if (section) counts[section] = (counts[section] || 0) + 1
   }
+
   if (actor.kind === "staff") {
     const membership = actor.roles.some((role) =>
       ["super_admin", "membership_admin", "operations_officer"].includes(role),
@@ -66,6 +139,7 @@ export function workspaceAlerts(
     const operationsOnly =
       actor.roles.includes("operations_officer") &&
       !actor.roles.some((r) => ["super_admin", "membership_admin"].includes(r))
+
     if (membership) {
       for (const a of state.applications) {
         if (
@@ -130,9 +204,10 @@ export function workspaceAlerts(
           "trade-credit",
         )
     }
-    if (finance)
+
+    if (finance) {
       for (const i of state.invoices.filter(
-        (i) => i.status === "Receipt submitted",
+        (i) => i.active !== false && i.status === "Receipt submitted",
       ))
         add(
           {
@@ -144,7 +219,7 @@ export function workspaceAlerts(
           },
           "finance",
         )
-    if (finance)
+
       for (const i of state.invoices.filter(
         (i) => i.status === "Confirmed" && !i.taxInvoice,
       ))
@@ -158,6 +233,22 @@ export function workspaceAlerts(
           },
           "finance",
         )
+    }
+
+    // Apply backend statisticsBadges to sidebar & topbar section badges
+    const stats = overrideStats || cachedBadges
+    if (stats) {
+      counts.finance = stats.finance ?? 0
+      counts.billing = stats.finance ?? 0
+      counts.invoices = stats.finance ?? 0
+
+      counts.membership = stats.applicants ?? 0
+      counts.applications = stats.applicants ?? 0
+      counts.applicants = stats.applicants ?? 0
+
+      counts.other = stats.other ?? 0
+      counts["trade-credit"] = stats.other ?? 0
+    }
   } else if (actor.kind === "organisation") {
     const own = state.applications.filter(
       (a) => a.organisationId === actor.organisationId && a.portalAccess,
@@ -216,8 +307,10 @@ export function workspaceAlerts(
     }
     counts.membership = (counts.membership || 0) + (counts.invoices || 0)
   }
+
   return { items, counts }
 }
+
 export function unreadAlerts(items: WorkspaceAlert[], readIds: string[]) {
   return items.filter((item) => !readIds.includes(item.id))
 }

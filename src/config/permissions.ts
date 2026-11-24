@@ -22,6 +22,7 @@ export type Permission =
   | "audit.global"
   | "export.register"
   | "staff.accounts.manage"
+  | "trade-credit.view"
   | "trade-credit.review"
   | "site.manage"
 
@@ -51,7 +52,14 @@ export function can(actor: Actor | null, permission: Permission): boolean {
       role === "super_admin" ||
       (role === "membership_admin" && membership.includes(permission)) ||
       (role === "operations_officer" &&
-        ["overview.view", "applications.review"].includes(permission)) ||
+        [
+          "overview.view",
+          "applications.review",
+          "billing.view",
+          "trade-credit.view",
+          "reports.membership",
+          "reports.finance",
+        ].includes(permission)) ||
       (role === "finance_admin" && finance.includes(permission)),
   )
 }
@@ -72,9 +80,9 @@ export function canAccessSection(
     administration: ["administration.manage"],
     settings: ["site.manage"],
     "staff-activity": ["audit.global"],
-    "membership-activity": ["reports.membership", "membership.view"],
+    "membership-activity": ["members.manage", "membership.view"],
     "finance-activity": ["billing.manage"],
-    "trade-credit": ["trade-credit.review"],
+    "trade-credit": ["trade-credit.review", "trade-credit.view"],
   }
   return (rules[section] || []).some((permission) => can(actor, permission))
 }
@@ -152,13 +160,7 @@ export function workspaceForActor(
     ...state,
     applications,
     invoices:
-      actor &&
-      !(
-        actor.roles.includes("operations_officer") &&
-        !actor.roles.includes("super_admin") &&
-        !actor.roles.includes("membership_admin") &&
-        !actor.roles.includes("finance_admin")
-      )
+      actor && (actor.kind === "organisation" || can(actor, "billing.view"))
         ? state.invoices
             .filter((i) => ids.has(i.applicationId))
             .map((i) =>

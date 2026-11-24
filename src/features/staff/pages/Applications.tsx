@@ -7,6 +7,7 @@ import applicationService, {
   type Application,
   type ApplicationStatus,
 } from "@/apiServices/applicationService"
+import tierService, { type Tier } from "@/apiServices/tierService"
 
 const ALL_STAGES: ApplicationStatus[] = [
   "Submitted",
@@ -19,21 +20,18 @@ const ALL_STAGES: ApplicationStatus[] = [
   "Declined",
 ]
 
-const TIER_OPTIONS = [
-  "Platinum — USD 1,000",
-  "Silver — USD 500",
-  "Associate — USD 250",
-  "Affiliate — USD 150",
-]
-
 export default function Applications({
   navigate,
 }: {
   navigate: (route: string) => void
 }) {
   const [applications, setApplications] = useState<Application[]>([])
+  const [tiers, setTiers] = useState<Tier[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [counts, setCounts] = useState<
+    Partial<Record<ApplicationStatus, number>>
+  >({})
 
   // Filters
   const [query, setQuery] = useState("")
@@ -42,6 +40,19 @@ export default function Applications({
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
 
+  // Fetch tiers from backend on mount
+  useEffect(() => {
+    let cancelled = false
+    tierService.list().then((res) => {
+      if (!cancelled && res.success) {
+        setTiers(res.data)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -49,13 +60,16 @@ export default function Applications({
     const res = await applicationService.list({
       search: query || undefined,
       status: stage || undefined,
+      include_drafts: false,
       requested_tier: tier || undefined,
       from: from || undefined,
       to: to || undefined,
     })
 
     if (res.success) {
-      setApplications(res.data)
+      setApplications(
+        res.data.filter((application) => application.status !== "Draft"),
+      )
     } else {
       setError(res.message)
     }
@@ -69,6 +83,28 @@ export default function Applications({
     }, 250)
     return () => clearTimeout(timer)
   }, [loadData])
+
+  useEffect(() => {
+    let cancelled = false
+    void Promise.all(
+      ALL_STAGES.map(async (status) => {
+        const result = await applicationService.list({
+          status,
+          include_drafts: false,
+        })
+        return [status, result.success ? result.total : undefined] as const
+      }),
+    ).then((results) => {
+      if (!cancelled) setCounts(Object.fromEntries(results))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const allCount = ALL_STAGES.every((status) => counts[status] !== undefined)
+    ? ALL_STAGES.reduce((sum, status) => sum + (counts[status] ?? 0), 0)
+    : undefined
 
   const clearFilters = () => {
     setQuery("")
@@ -84,6 +120,28 @@ export default function Applications({
         title="Applications"
         description="Live queue for incoming membership submissions, compliance verifications and board admission decisions."
       />
+      <nav
+        className="workspace-actions"
+        aria-label="Application status filters"
+      >
+        <Button
+          kind={stage === "" ? "primary" : "secondary"}
+          aria-pressed={stage === ""}
+          onClick={() => setStage("")}
+        >
+          All ({allCount ?? "?"})
+        </Button>
+        {ALL_STAGES.map((status) => (
+          <Button
+            key={status}
+            kind={stage === status ? "primary" : "secondary"}
+            aria-pressed={stage === status}
+            onClick={() => setStage(status)}
+          >
+            {status} ({counts[status] ?? "?"})
+          </Button>
+        ))}
+      </nav>
       <section className="workspace-panel">
         <label className="field">
           <span>Search organisation or reference</span>
@@ -91,12 +149,14 @@ export default function Applications({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by legal name, reference, email, or UUID…"
+            placeholder="Search by legal name, application number, reference, or email…"
           />
         </label>
 
         <details className="workspace-filters" open>
-          <summary>Filters · {applications.length} matching applications</summary>
+          <summary>
+            Filters · {applications.length} matching applications
+          </summary>
           <div className="workspace-filter-grid">
             <label className="field">
               Stage
@@ -114,9 +174,9 @@ export default function Applications({
               Requested tier
               <select value={tier} onChange={(e) => setTier(e.target.value)}>
                 <option value="">All tiers</option>
-                {TIER_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {tiers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} — USD {Number(t.cost).toLocaleString()}
                   </option>
                 ))}
               </select>
@@ -166,7 +226,12 @@ export default function Applications({
                 <div>
                   <strong>{a.legal_name || "Untitled Organisation"}</strong>
                   {a.trading_name && (
-                    <small style={{ display: "block", color: "var(--color-text-muted, #666)" }}>
+                    <small
+                      style={{
+                        display: "block",
+                        color: "var(--color-text-muted, #666)",
+                      }}
+                    >
                       t/a {a.trading_name}
                     </small>
                   )}
@@ -175,9 +240,28 @@ export default function Applications({
               sort: (a) => a.legal_name,
             },
             {
-              label: "Reference / Reg #",
-              cell: (a) => a.registration_reference || a.id.slice(0, 8),
-              sort: (a) => a.registration_reference || a.id,
+              label: "Application #",
+              cell: (a) => {
+                const appNumber = (a as any).application_number
+                return (
+                  <div>
+                    <strong style={{ fontFamily: "monospace", letterSpacing: "0.5px" }}>
+                      {appNumber || a.registration_reference || "—"}
+                    </strong>
+                    {a.registration_reference && appNumber && (
+                      <small
+                        style={{
+                          display: "block",
+                          color: "var(--color-text-muted, #666)",
+                        }}
+                      >
+                        Ref: {a.registration_reference}
+                      </small>
+                    )}
+                  </div>
+                )
+              },
+              sort: (a) => (a as any).application_number || a.registration_reference || a.id,
             },
             {
               label: "Requested tier",
@@ -231,10 +315,12 @@ export default function Applications({
             },
           ]}
         />
-        {loading && <p style={{ padding: "1rem", textAlign: "center" }}>Loading applications…</p>}
+        {loading && (
+          <p style={{ padding: "1rem", textAlign: "center" }}>
+            Loading applications…
+          </p>
+        )}
       </section>
     </>
   )
 }
-
-

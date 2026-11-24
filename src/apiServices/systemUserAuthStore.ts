@@ -44,7 +44,11 @@ const systemUserAuthStore = {
       return null;
     }
   },
-
+  getUserId(): string | null {
+    const user = this.getUser();
+    const id = user?.id?.trim();
+    return id && id.length > 0 ? id : null;
+  },
   isSuperAdmin(): boolean {
     return this.getUser()?.role === 'super_admin';
   },

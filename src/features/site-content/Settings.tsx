@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, type FormEvent, type ChangeEvent } from "react"
+import BlogSettings from "./BlogSettings"
 import PageHeader from "@/components/dashboard/PageHeader"
 import DataTable from "@/components/dashboard/DataTable"
 import Dialog from "@/components/dashboard/Dialog"
@@ -19,17 +20,13 @@ import tierService, {
 } from "@/apiServices/tierService"
 import { BASE_URL } from "@/apiServices/env"
 
-type SettingTab = "home" | "banner" | "tiers"
+type SettingTab = "home" | "banner" | "tiers" | "blogs"
 
 // Helper to resolve backend image paths to absolute URLs
 function resolveImageUrl(path: string): string {
   if (!path) return ""
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
-    return path
-  }
-  const base = (BASE_URL || "").replace(/\/api\/v1\/?$/, "")
-  const cleanPath = path.startsWith("/") ? path.slice(1) : path
-  return `${base}/${cleanPath}`
+  const base = BASE_URL+"/"+path
+  return base
 }
 
 export default function Settings() {
@@ -385,7 +382,7 @@ export default function Settings() {
     <>
       <PageHeader
         title="Settings"
-        description="Manage live public website images, banners, and membership tiers."
+        description="Manage live public website images, banners, membership tiers, and Blog articles."
       />
 
       {failure && (
@@ -406,6 +403,7 @@ export default function Settings() {
           ["home", "Home slider"],
           ["banner", "Banner"],
           ["tiers", "Membership tiers"],
+          ["blogs", "Blogs"],
         ].map(([id, label]) => (
           <Button
             key={id}
@@ -423,7 +421,8 @@ export default function Settings() {
       </nav>
 
       {/* Panel view */}
-      <section className="workspace-panel">
+      {tab === "blogs" ? <BlogSettings user={currentUser} /> : (
+<section className="workspace-panel">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <h2>
             {tab === "home"
@@ -617,6 +616,7 @@ export default function Settings() {
           />
         )}
       </section>
+      )}
 
       {/* Edit / Add Dialog */}
       {editingItem && (

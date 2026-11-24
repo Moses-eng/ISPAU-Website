@@ -23,6 +23,7 @@ import applicationService, {
   type Verification as BackendVerification,
 } from "@/apiServices/applicationService"
 import systemUserAuthStore from "@/apiServices/systemUserAuthStore"
+import { BASE_URL } from "@/apiServices/env"
 
 const EVIDENCE_TITLES: Record<string, string> = {
   registrationEvidence: "Registration or establishment evidence",
@@ -33,11 +34,8 @@ const EVIDENCE_TITLES: Record<string, string> = {
 }
 
 const getBackendBaseUrl = (): string => {
-  const envUrl =
-    import.meta.env.VITE_BACKEND_URL ||
-    import.meta.env.VITE_API_BASE_URL ||
-    import.meta.env.VITE_API_URL
-  if (envUrl) return envUrl.replace(/\/+$/, "").replace(/\/api(\/v\d+)?$/i, "")
+  const envUrl = BASE_URL
+  if (envUrl) return envUrl
   if (typeof window !== "undefined") {
     if (window.location.port === "5173" || window.location.port === "3000") {
       return `${window.location.protocol}//${window.location.hostname}:8000`
@@ -56,9 +54,6 @@ const getFileUrl = (path: string): string => {
 /**
  * Backend verifications come as `{ checks: { registration, authority, regulatory } }`.
  * Flatten the most recent verification record.
- *
- * Notes are kept as an array (or normalized from a string) so the UI can
- * render each line individually, mirroring the Clarification history list.
  */
 function flattenVerifications(
   rawApp: BackendApplication | null,
@@ -75,11 +70,10 @@ function flattenVerifications(
       label:
         check.label ||
         verificationLabels.find(
-          (l) => l.toLowerCase().includes(key.toLowerCase())
+          (l) => l.toLowerCase().includes(key.toLowerCase()),
         ) ||
         key,
       result: check.result,
-      // Preserve array shape so each note renders on its own line.
       note: Array.isArray(check.note)
         ? check.note
         : check.note
@@ -188,7 +182,7 @@ export default function ApplicationReview({
     return source?.verifications ?? []
   }, [rawApp, initialApp])
 
-  const a: WorkspaceApplication = useMemo(() => {
+  const a: WorkspaceApplication & { applicationNumber?: string | null } = useMemo(() => {
     const source: any = rawApp || (initialApp as any)?.application || initialApp
 
     if (source && (source.legal_name || source.values || source.attachments)) {
@@ -268,18 +262,29 @@ export default function ApplicationReview({
         isPdf: boolean
         isImage: boolean
         filename: string
-      })[] = Object.entries(rawAttachments)
-        .filter(([_, path]) => Boolean(path))
-        .map(([key, path]) => {
-          const pathStr = String(path)
+      })[] = Object.entries(rawAttachments).flatMap(([key, pathOrPaths]) => {
+        if (!pathOrPaths) return []
+
+        // Normalize string or string[] into an array of paths
+        const pathList: string[] = Array.isArray(pathOrPaths)
+          ? pathOrPaths.filter(Boolean).map(String)
+          : [String(pathOrPaths)]
+
+        const baseTitle =
+          EVIDENCE_TITLES[key] || key.replace(/([A-Z])/g, " $1").trim()
+
+        return pathList.map((pathStr, index) => {
           const filename = pathStr.split("/").pop() || `${key}.pdf`
           const ext = filename.split(".").pop()?.toLowerCase() || ""
           const isPdf = ext === "pdf"
           const isImage = ["jpg", "jpeg", "png", "webp"].includes(ext)
           const fileUrl = getFileUrl(pathStr)
+          const displayName =
+            pathList.length > 1 ? `${baseTitle} (${index + 1})` : baseTitle
+
           return {
-            id: key,
-            name: EVIDENCE_TITLES[key] || key.replace(/([A-Z])/g, " $1").trim(),
+            id: pathList.length > 1 ? `${key}-${index}` : key,
+            name: displayName,
             filename,
             size: 1024 * 250,
             type: isPdf
@@ -296,6 +301,7 @@ export default function ApplicationReview({
             isImage,
           }
         })
+      })
 
       const reviewers = adaptReviewers(rawApp)
       const rawVerifList = source?.verifications ?? []
@@ -309,6 +315,7 @@ export default function ApplicationReview({
 
       return {
         id: source.id || resolvedId,
+        applicationNumber: source.application_number || null,
         organisationId: source.id || resolvedId,
         organisation:
           source.legal_name || values.legalName || "Untitled Organisation",
@@ -357,6 +364,7 @@ export default function ApplicationReview({
 
     return {
       id: resolvedId,
+      applicationNumber: null,
       organisationId: resolvedId,
       organisation: "Loading…",
       requestedTier: "",
@@ -419,6 +427,11 @@ export default function ApplicationReview({
     )
   }
 
+  const displayReference =
+    a.applicationNumber ||
+    a.values?.registrationReference ||
+    a.id
+
   return (
     <>
       <PageHeader
@@ -429,7 +442,7 @@ export default function ApplicationReview({
           />
         }
         title={a.organisation}
-        description={`${a.id} · Requested ${a.requestedTier} · Confirmed ${
+        description={`${displayReference} · Requested ${a.requestedTier} · Confirmed ${
           a.confirmedTier || "not yet decided"
         } · Reviewer: ${a.reviewer}`}
       />
@@ -441,12 +454,12 @@ export default function ApplicationReview({
 
       {(!can(actor, "membership.view") ||
         can(actor, "applications.review")) && (
-      <WorkflowActions
-        application={a}
-        actor={actor}
-        invoice={invoice}
-        feedback={handleFeedback}
-      />
+        <WorkflowActions
+          application={a}
+          actor={actor}
+          invoice={invoice}
+          feedback={handleFeedback}
+        />
       )}
 
       <div className="workspace-review-grid">
@@ -455,6 +468,16 @@ export default function ApplicationReview({
           <section className="workspace-panel">
             <h2>Application information</h2>
             <dl className="workspace-record">
+              {a.applicationNumber && (
+                <div>
+                  <dt>Application number</dt>
+                  <dd>
+                    <strong style={{ fontFamily: "monospace", letterSpacing: "0.5px" }}>
+                      {a.applicationNumber}
+                    </strong>
+                  </dd>
+                </div>
+              )}
               {Object.entries(a.values).map(([key, value]) => (
                 <div key={key}>
                   <dt>

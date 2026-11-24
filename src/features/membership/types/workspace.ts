@@ -10,7 +10,8 @@ export const stages = [
   "Declined",
 ] as const
 export type Stage = (typeof stages)[number]
-export type StaffRole = "super_admin" | "membership_admin" | "finance_admin"
+export type StaffRole =
+  "super_admin" | "membership_admin" | "finance_admin" | "operations_officer"
 export type Actor = {
   id: string
   name: string
@@ -63,6 +64,7 @@ export type Application = {
   organisation: string
   requestedTier: string
   confirmedTier?: string
+  approvedFee?: { amount: number; currency: string }
   stage: Stage
   submittedAt?: string
   updatedAt: string
@@ -91,7 +93,30 @@ export type Application = {
   periodEnd: string
   renewalConfirmedAt?: string
 }
+export type Payment = {
+  id: string
+  amount: number
+  reference: string
+  paidAt: string
+  createdBy: string
+  active: boolean
+  confirmedAt?: string
+  confirmedBy?: string
+}
+
+export type Subscription = {
+  paymentId: string
+  paymentConfirmedAt: string
+  startsAt: string
+  expiresAt: string
+}
+
 export type Invoice = {
+  active?: boolean
+  issuedBy?: string
+  invoicePdf?: FileRecord
+  payments?: Payment[]
+  subscription?: Subscription
   id: string
   applicationId: string
   amount: number
@@ -123,6 +148,16 @@ export type WorkspaceState = {
 }
 export type Command =
   | { type: "start-review"; id: string }
+  | {
+      type: "issue-invoice"
+      id: string
+      amount: number
+      currency: string
+      active: boolean
+      periodStart: string
+      periodEnd: string
+      file: FileRecord
+    }
   | { type: "verify"; id: string; results: Verification[] }
   | { type: "clarify"; id: string; items: string[] }
   | { type: "respond"; id: string; response: string }
@@ -142,6 +177,8 @@ export type Command =
       reference: string
       date: string
       receipt?: FileRecord
+      amount?: number
+      active?: boolean
     }
   | { type: "confirm-payment"; id: string }
   | { type: "tax-invoice"; id: string; file: FileRecord }

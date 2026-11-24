@@ -47,7 +47,10 @@ export default function StaffWorkspaceContent({
     return <Notification />
   }
 
-  if (section === "settings") return <Settings actor={actor} />
+  // if (section === "settings") return <Settings actor={actor} />
+  if (section === "settings") return <Settings />
+
+
 
   if (section === "overview")
     return <Overview state={state} actor={actor} navigate={navigate} />

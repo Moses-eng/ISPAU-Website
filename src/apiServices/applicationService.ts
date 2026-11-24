@@ -273,6 +273,8 @@ class ApplicationService {
     }
   }
 
+
+
   async show(id: string): Promise<ApiSingleResponse> {
     try {
       const res = await axiosClient.get(API_ADMIN_APPLICATIONS_SHOW(id));

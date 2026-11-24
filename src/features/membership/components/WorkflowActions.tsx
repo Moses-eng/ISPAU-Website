@@ -9,12 +9,7 @@ import applicationService, {
   type ApplicationStatus,
 } from "@/apiServices/applicationService"
 import systemUserAuthStore from "@/apiServices/systemUserAuthStore"
-import type {
-  Actor,
-  Application,
-  Command,
-  Invoice,
-} from "../types/workspace"
+import type { Actor, Application, Command, Invoice } from "../types/workspace"
 
 export default function WorkflowActions({
   application: a,
@@ -169,11 +164,13 @@ export default function WorkflowActions({
 
         if (!items.length) throw new Error("Add at least one correction.")
 
-        const applicantEmail =
-          String(a.values?.applicantEmail || a.values?.businessEmail || "").trim()
+        const applicantEmail = String(
+          a.values?.applicantEmail || a.values?.businessEmail || "",
+        ).trim()
 
-        const applicantName =
-          String(a.values?.applicantName || a.organisation || "Applicant").trim()
+        const applicantName = String(
+          a.values?.applicantName || a.organisation || "Applicant",
+        ).trim()
 
         const res = await applicationService.raiseClarification({
           applicationId: a.id,
@@ -205,9 +202,8 @@ export default function WorkflowActions({
           )
         }
 
-        const nextStatus = (
-          text("status") || "Decision pending"
-        ) as ApplicationStatus
+        const nextStatus = (text("status") ||
+          "Decision pending") as ApplicationStatus
 
         const res = await applicationService.update(a.id, {
           status: nextStatus,
@@ -223,6 +219,13 @@ export default function WorkflowActions({
       let command: Command
 
       if (["Approve", "Defer", "Decline"].includes(intent)) {
+        if (
+          intent === "Approve" &&
+          (!canConfirmApplication || !verificationComplete)
+        )
+          throw new Error(
+            "Only a Super Admin can approve after all checks are verified.",
+          )
         command = {
           type: "decide",
           id: a.id,
@@ -237,6 +240,8 @@ export default function WorkflowActions({
         command = {
           type: "payment",
           id: a.id,
+          amount: Number(text("paidAmount")),
+          active: text("paymentStatus") === "Active",
           reference: text("reference"),
           date: text("date"),
           receipt: file?.size ? acceptFile(file, "paymentReceipt") : undefined,
@@ -254,7 +259,8 @@ export default function WorkflowActions({
         intent === "Confirm payment received"
       ) {
         command = {
-          type: intent === "Activate membership" ? "activate" : "confirm-payment",
+          type:
+            intent === "Activate membership" ? "activate" : "confirm-payment",
           id: a.id,
         }
       } else {
@@ -279,7 +285,7 @@ export default function WorkflowActions({
   if (can(actor, "applications.review")) {
     if (canRecordVerification) buttons.push("Record verification")
     if (canRequestClarification) buttons.push("Request clarification")
-    if (canConfirmApplication) buttons.push("Confirm Application")
+    if (canConfirmApplication && verificationComplete && !isActive)buttons.push("Confirm Application")
 
     if (
       can(actor, "membership.activate") &&
@@ -287,11 +293,22 @@ export default function WorkflowActions({
     )
       buttons.push("Activate membership")
   }
-  if (can(actor, "applications.decide") && a.stage === "Decision pending")
-    buttons.push("Approve", "Defer", "Decline")
-  if (invoice && invoice.status !== "Confirmed" && can(actor, "billing.manage"))
+  if (can(actor, "applications.decide") && a.stage === "Decision pending") {
+    if (canConfirmApplication && verificationComplete) buttons.push("Approve")
+    buttons.push("Defer", "Decline")
+  }
+  if (
+    invoice &&
+    invoice.active !== false &&
+    invoice.status !== "Confirmed" &&
+    can(actor, "billing.manage")
+  )
     buttons.push("Record payment details")
-  if (invoice?.status === "Receipt submitted" && can(actor, "payments.confirm"))
+  if (
+    invoice?.active !== false &&
+    invoice?.status === "Receipt submitted" &&
+    can(actor, "payments.confirm")
+  )
     buttons.push("Confirm payment received")
   if (invoice?.status === "Confirmed" && can(actor, "billing.manage"))
     buttons.push("Upload tax invoice")
@@ -458,8 +475,8 @@ export default function WorkflowActions({
                   value={a.stage === "Submitted" ? "Decision pending" : a.stage}
                 />
                 <p>
-                  Confirming this application updates its status in the system to
-                  allow the next workflow stage.
+                  Approving this application updates its status in the system
+                  to allow the next workflow stage.
                 </p>
               </>
             )}
@@ -505,6 +522,24 @@ export default function WorkflowActions({
 
             {intent === "Record payment details" && (
               <>
+                <FormField
+                  label="Amount paid"
+                  name="paidAmount"
+                  type="number"
+                  required
+                  value={
+                    invoice?.payments?.find(
+                      (payment) => payment.active && !payment.confirmedAt,
+                    )?.amount
+                  }
+                />
+                <FormField
+                  label="Payment record status"
+                  name="paymentStatus"
+                  options={["Active", "Inactive"]}
+                  required
+                  value="Active"
+                />
                 <FormField
                   name="reference"
                   label="Payment reference"

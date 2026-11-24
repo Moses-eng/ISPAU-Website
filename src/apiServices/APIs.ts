@@ -78,6 +78,32 @@ export const API_ADMIN_BANNERS_STORE   = BASE_URL + '/api/v1/auth/admin/banners/
 export const API_ADMIN_BANNERS_UPDATE  = BASE_URL + '/api/v1/auth/admin/banners/update';
 export const API_ADMIN_BANNERS_DELETE  = BASE_URL + '/api/v1/auth/admin/banners/delete';
 
+// ============================================================
+// INVOICES (Admin CRUD)
+// ============================================================
+export const API_ADMIN_INVOICES_LIST   = BASE_URL + '/api/v1/auth/admin/invoices/list';
+export const API_ADMIN_INVOICES_SHOW   = (id: ResourceId) => BASE_URL + `/api/v1/auth/admin/invoices/show/${id}`;
+export const API_ADMIN_INVOICES_STORE  = BASE_URL + '/api/v1/auth/admin/invoices/store';
+export const API_ADMIN_INVOICES_UPDATE = BASE_URL + '/api/v1/auth/admin/invoices/update';
+export const API_ADMIN_INVOICES_DELETE = BASE_URL + '/api/v1/auth/admin/invoices/delete';
+
+// ============================================================
+// PAYMENTS (Admin CRUD)
+// ============================================================
+export const API_ADMIN_PAYMENTS_LIST   = BASE_URL + '/api/v1/auth/admin/payments/list';
+export const API_ADMIN_PAYMENTS_SHOW   = (id: ResourceId) => BASE_URL + `/api/v1/auth/admin/payments/show/${id}`;
+export const API_ADMIN_PAYMENTS_STORE  = BASE_URL + '/api/v1/auth/admin/payments/store';
+export const API_ADMIN_PAYMENTS_UPDATE = BASE_URL + '/api/v1/auth/admin/payments/update';
+export const API_ADMIN_PAYMENTS_DELETE = BASE_URL + '/api/v1/auth/admin/payments/delete';
+
+// ============================================================
+// RECEIPTS (Admin CRUD)
+// ============================================================
+export const API_ADMIN_RECEIPTS_LIST   = BASE_URL + '/api/v1/auth/admin/receipts/list';
+export const API_ADMIN_RECEIPTS_SHOW   = (id: ResourceId) => BASE_URL + `/api/v1/auth/admin/receipts/show/${id}`;
+export const API_ADMIN_RECEIPTS_STORE  = BASE_URL + '/api/v1/auth/admin/receipts/store';
+export const API_ADMIN_RECEIPTS_UPDATE = BASE_URL + '/api/v1/auth/admin/receipts/update';
+export const API_ADMIN_RECEIPTS_DELETE = BASE_URL + '/api/v1/auth/admin/receipts/delete';
 
 // ============================================================
 // ADMIN NOTIFICATIONS
@@ -135,3 +161,42 @@ export const API_MEMBERSHIP_ADMIN_NOTIFICATIONS_BULK_DELETE    = BASE_URL + "/ap
 export const API_MEMBERSHIP_ADMIN_NOTIFICATIONS_SHOW           = (id: ResourceId) => BASE_URL + `/api/v1/membership-admin/notifications/${id}`;
 export const API_MEMBERSHIP_ADMIN_NOTIFICATIONS_MARK_READ      = (id: ResourceId) => BASE_URL + `/api/v1/membership-admin/notifications/${id}/read`;
 export const API_MEMBERSHIP_ADMIN_NOTIFICATIONS_DELETE         = (id: ResourceId) => BASE_URL + `/api/v1/membership-admin/notifications/${id}`;
+
+// ============================================================
+// DISPUTES ADMIN DISPUTES
+// ============================================================
+export const API_ADMIN_DISPUTES_LIST   = BASE_URL + "/api/v1/auth/admin/disputes/list";
+export const API_ADMIN_DISPUTES_SHOW   = (id: ResourceId) => BASE_URL + `/api/v1/auth/admin/disputes/show/${id}`;
+export const API_ADMIN_DISPUTES_UPDATE = BASE_URL + "/api/v1/auth/admin/disputes/update";
+export const API_ADMIN_DISPUTES_DELETE = BASE_URL + "/api/v1/auth/admin/disputes/delete";
+
+// ============================================================
+// CONTACTS ADMIN DISPUTES
+// ============================================================
+export const API_ADMIN_CONTACTS_LIST   = BASE_URL + "/api/v1/auth/admin/contacts/list";
+export const API_ADMIN_CONTACTS_SHOW   = (id: ResourceId) => BASE_URL + `/api/v1/auth/admin/contacts/show/${id}`;
+export const API_ADMIN_CONTACTS_UPDATE = BASE_URL + "/api/v1/auth/admin/contacts/update";
+export const API_ADMIN_CONTACTS_DELETE = BASE_URL + "/api/v1/auth/admin/contacts/delete";
+
+// ============================================================
+// STATISTICS
+// ============================================================
+export const API_ADMIN_STATISTICS        = BASE_URL + '/api/v1/auth/admin/statistics';
+export const API_ADMIN_STATISTICS_BADGES = BASE_URL + '/api/v1/auth/admin/statistics/badges';
+
+// ============================================================
+// ADMIN — SUBSCRIPTIONS
+// ============================================================
+
+export const API_ADMIN_SUBSCRIPTIONS_LIST = BASE_URL+'/api/v1/auth/admin/subscriptions/list';
+export const API_ADMIN_SUBSCRIPTIONS_SHOW = (id: string) => BASE_URL+`/api/v1/auth/admin/subscriptions/show/${id}`;
+
+
+// ============================================================
+// BLOG (Admin)
+// ============================================================
+export const API_ADMIN_BLOG_LIST   = BASE_URL + '/api/v1/auth/admin/blog/list';
+export const API_ADMIN_BLOG_SHOW   = (id: ResourceId) => BASE_URL + `/api/v1/auth/admin/blog/show/${id}`;
+export const API_ADMIN_BLOG_STORE  = BASE_URL + '/api/v1/auth/admin/blog/store';
+export const API_ADMIN_BLOG_UPDATE = BASE_URL + '/api/v1/auth/admin/blog/update';
+export const API_ADMIN_BLOG_DELETE = BASE_URL + '/api/v1/auth/admin/blog/delete';

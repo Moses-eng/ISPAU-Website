@@ -47,6 +47,7 @@ export const staffSections = [
   { id: "reports", label: "Reports", icon: "chart" },
   { id: "administration", label: "Administration", icon: "shield" },
   { id: "staff-activity", label: "Staff activity", icon: "file" },
+  { id: "settings", label: "Settings", icon: "file" },
 ] as const
 
 export function staffGroup(section: string) {
@@ -68,4 +69,5 @@ export const staffNavigation = [
   { id: "reports", label: "Reports", icon: "chart" },
   { id: "staff-activity", label: "Staff activity", icon: "file" },
   { id: "administration", label: "Administration", icon: "lock" },
+  { id: "settings", label: "Settings", icon: "file" },
 ]
