@@ -200,3 +200,12 @@ export const API_ADMIN_BLOG_SHOW   = (id: ResourceId) => BASE_URL + `/api/v1/aut
 export const API_ADMIN_BLOG_STORE  = BASE_URL + '/api/v1/auth/admin/blog/store';
 export const API_ADMIN_BLOG_UPDATE = BASE_URL + '/api/v1/auth/admin/blog/update';
 export const API_ADMIN_BLOG_DELETE = BASE_URL + '/api/v1/auth/admin/blog/delete';
+
+// ============================================================
+// ACTIVITY (Admin)
+// ============================================================
+export const API_ADMIN_ACTIVITY_LIST   = BASE_URL + '/api/v1/auth/admin/activity/list';
+export const API_ADMIN_ACTIVITY_SHOW   = (id: string) => BASE_URL + `/api/v1/auth/admin/activity/show/${id}`;
+export const API_ADMIN_ACTIVITY_STORE  = BASE_URL + '/api/v1/auth/admin/activity/store';
+export const API_ADMIN_ACTIVITY_UPDATE = BASE_URL + '/api/v1/auth/admin/activity/update';
+export const API_ADMIN_ACTIVITY_DELETE = BASE_URL + '/api/v1/auth/admin/activity/delete';

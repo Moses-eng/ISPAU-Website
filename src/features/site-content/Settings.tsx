@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, type FormEvent, type ChangeEvent } from "react"
 import BlogSettings from "./BlogSettings"
+import ActivitiesSettings from "./ActivitiesSettings"
 import PageHeader from "@/components/dashboard/PageHeader"
 import DataTable from "@/components/dashboard/DataTable"
 import Dialog from "@/components/dashboard/Dialog"
@@ -20,7 +21,7 @@ import tierService, {
 } from "@/apiServices/tierService"
 import { BASE_URL } from "@/apiServices/env"
 
-type SettingTab = "home" | "banner" | "tiers" | "blogs"
+type SettingTab = "home" | "banner" | "tiers" | "blogs" | "activities"
 
 // Helper to resolve backend image paths to absolute URLs
 function resolveImageUrl(path: string): string {
@@ -382,7 +383,7 @@ export default function Settings() {
     <>
       <PageHeader
         title="Settings"
-        description="Manage live public website images, banners, membership tiers, and Blog articles."
+        description="Manage live public website images, banners, membership tiers, Blog articles and activities."
       />
 
       {failure && (
@@ -404,6 +405,7 @@ export default function Settings() {
           ["banner", "Banner"],
           ["tiers", "Membership tiers"],
           ["blogs", "Blogs"],
+          ["activities", "Activities"],
         ].map(([id, label]) => (
           <Button
             key={id}
@@ -421,7 +423,7 @@ export default function Settings() {
       </nav>
 
       {/* Panel view */}
-      {tab === "blogs" ? <BlogSettings user={currentUser} /> : (
+      {tab === "blogs" ? <BlogSettings user={currentUser} /> : tab === "activities" ? <ActivitiesSettings user={currentUser} /> : (
 <section className="workspace-panel">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <h2>

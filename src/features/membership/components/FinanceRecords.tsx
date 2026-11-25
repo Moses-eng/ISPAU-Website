@@ -49,7 +49,7 @@ export default function FinanceRecords({
   const loadActiveApplications = async () => {
     setLoadingApps(true)
     try {
-      const res = await applicationService.list({ status: "Active" })
+      const res = await applicationService.list({ status: "Approved awaiting payment" })
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         const eligible = res.data.filter(
           (app) => app.status === "Active" || app.status === "Approved awaiting payment",

@@ -418,7 +418,7 @@ export default function WorkflowActions({
                     required
                     options={[
                       "Verified",
-                      "Clarification needed",
+                      // "Clarification needed",
                       "Not applicable",
                     ]}
                     value={
@@ -465,10 +465,8 @@ export default function WorkflowActions({
                   label="Application status"
                   required
                   options={[
-                    "Decision pending",
-                    "Under review",
                     "Approved awaiting payment",
-                    "Active",
+                    // "Active",
                     "Deferred",
                     "Declined",
                   ]}

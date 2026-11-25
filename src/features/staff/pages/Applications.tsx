@@ -114,6 +114,21 @@ export default function Applications({
     setTo("")
   }
 
+
+// Prevents calling update() if already "Under review"
+  const handleOpenReview = async (id: string, currentStatus?: ApplicationStatus) => {
+    const status = currentStatus ?? applications.find((app) => app.id === id)?.status
+
+    if (status !== "Under review" && status === "Submitted") {
+      try {
+        await applicationService.update(id, { status: "Under review" })
+      } catch (err) {
+        console.error("Failed to update status to Under review:", err)
+      }
+    }
+
+    navigate(`applications/${id}`)
+  }
   return (
     <>
       <PageHeader
@@ -307,7 +322,7 @@ export default function Applications({
               cell: (a) => (
                 <Button
                   kind="ghost"
-                  onClick={() => navigate(`applications/${a.id}`)}
+                  onClick={() => handleOpenReview(a.id)}
                 >
                   Open review →
                 </Button>
