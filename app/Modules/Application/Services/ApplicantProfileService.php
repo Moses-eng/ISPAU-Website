@@ -41,22 +41,57 @@ class ApplicantProfileService
     }
 
     /**
-     * Update the authenticated applicant's own record.
-     * Only whitelisted, user-editable fields can be changed — status, OTP
-     * columns, password, and reviewer-managed relations are stripped out
-     * by ApplicationRequestData's fromRequest() and ApplicationRule::updateRules().
+     * Update only the defined fields for the authenticated applicant's profile.
      */
-    public function update(ApplicationModel $authenticated, ApplicationRequestData $data): ApplicationActionResponseData
+    public function update(ApplicationModel $authenticated, array $data): ApplicationActionResponseData
     {
-        // Belt-and-braces: the DTO carries no id, so we can't accidentally
-        // update a different row. Use the authenticated instance directly.
         try {
-            return $this->applications->update($authenticated, $data);
+            // Mapping from request input keys (camelCase) to database columns (snake_case)
+            $allowedFields = [
+                'legalName'             => 'legal_name',
+                'tradingName'           => 'trading_name',
+                'businessEmail'         => 'business_email',
+                'businessPhone'         => 'business_phone',
+                'website'               => 'website',
+                'registeredAddress'     => 'registered_address',
+                'ugandaAddress'         => 'uganda_address',
+                'representativeName'    => 'representative_name',
+                'representativeRole'    => 'representative_role',
+                'representativeEmail'   => 'representative_email',
+                'representativePhone'   => 'representative_phone',
+                'billingEmail'          => 'billing_email',
+                'billingContact'        => 'billing_contact',
+                'invoiceAddress'        => 'invoice_address',
+            ];
+
+            $updates = [];
+
+            // Update ONLY fields that are explicitly provided in the request
+            foreach ($allowedFields as $inputKey => $dbColumn) {
+                if (array_key_exists($inputKey, $data)) {
+                    $updates[$dbColumn] = $data[$inputKey];
+                } elseif (array_key_exists($dbColumn, $data)) {
+                    $updates[$dbColumn] = $data[$dbColumn];
+                }
+            }
+
+            if (! empty($updates)) {
+                $authenticated->fill($updates);
+                $authenticated->save();
+            }
+
+            $authenticated->refresh();
+
+            return ApplicationActionResponseData::success(
+                message: 'Company profile updated successfully.',
+                application: ApplicationResponseData::fromModel($authenticated),
+            );
         } catch (\Throwable $e) {
             Log::error('Applicant profile update failed', [
                 'application_id' => $authenticated->id,
                 'error'          => $e->getMessage(),
             ]);
+
             return ApplicationActionResponseData::error('Failed to update your profile.');
         }
     }

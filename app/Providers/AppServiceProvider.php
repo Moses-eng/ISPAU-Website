@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Modules\Activity\Interfaces\ActivityServiceInterface;
+use App\Modules\Activity\Repositories\ActivityRepository;
+use App\Modules\Activity\RepositoryInterfaces\ActivityRepositoryInterface;
+use App\Modules\Activity\Services\ActivityService;
 use App\Modules\AdminNotification\Interfaces\AdminNotificationServiceInterface;
 use App\Modules\AdminNotification\Repositories\AdminNotificationRepository;
 use App\Modules\AdminNotification\RepositoryInterfaces\AdminNotificationRepositoryInterface;
@@ -191,7 +195,11 @@ class AppServiceProvider extends ServiceProvider
         // … Blog bindings …
         $this->app->bind(BlogRepositoryInterface::class,BlogRepository::class);
         $this->app->bind(BlogServiceInterface::class,BlogService::class);
-        // … Banner bindings …
+
+        // … Activity bindings …
+        $this->app->bind(ActivityRepositoryInterface::class,ActivityRepository::class);
+        $this->app->bind(ActivityServiceInterface::class,ActivityService::class);
+
         // … Banner bindings …
         // … Banner bindings …
         // … Banner bindings …
@@ -225,7 +233,7 @@ class AppServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(app_path('Modules/Receipt/Migrations'));
         $this->loadMigrationsFrom(app_path('Modules/Subscription/Migrations'));
         $this->loadMigrationsFrom(app_path('Modules/Blog/Migrations'));
-        // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
+        $this->loadMigrationsFrom(app_path('Modules/Activity/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));
         // $this->loadMigrationsFrom(app_path('Modules/AdminNotification/Migrations'));

@@ -4,6 +4,7 @@ namespace App\Modules\Application\Services;
 
 use App\Helpers\AdminNotificationHelper;
 use App\Helpers\ApplicantNotificationHelper;
+use App\Helpers\FinanceAdminNotificationHelper;
 use App\Helpers\MembershipAdminNotificationHelper;
 use App\Helpers\OperationsOfficerAdminNotificationHelper;
 use App\Mail\ApplicationDraftSavedMail;
@@ -250,170 +251,7 @@ public function saveDraft(ApplicationRequestData $data): ApplicationActionRespon
         }
     }
 
-    public function create1(ApplicationRequestData $data): ApplicationActionResponseData
-    {
-        try {
-            // 1. Transaction strictly for persistence
-            $app = DB::transaction(function () use ($data) {
-                $existing = null;
-                if ($data->id) {
-                    $existing = $this->repository->findById($data->id);
-                } elseif (! empty($data->businessEmail)) {
-                    $existing = ApplicationModel::where('business_email', $data->businessEmail)
-                        ->where('status', 'Draft')
-                        ->first();
-                }
-
-                $payload = $data->toArray();
-                $payload['status'] = 'Submitted';
-
-                if ($existing) {
-                    $app = $this->repository->update($existing, $payload);
-                } else {
-                    $app = $this->repository->create($payload);
-                }
-
-                if (! empty($data->uploads)) {
-                    $paths = $this->attachments->storeAll($app->id, $data->uploads);
-                    if (! empty($paths)) {
-                        $merged = array_merge($app->attachments ?? [], $paths);
-                        $app = $this->repository->update($app, ['attachments' => $merged]);
-                    }
-                }
-
-                return $app;
-            });
-
-            Log::info('Application submitted', ['application_id' => $app->id]);
-
-            // -------------------------------------------------------------
-            // Side-effects outside the transaction
-            // -------------------------------------------------------------
-            $applicantPortalUrl = rtrim((string) env('FRONTEND_URL', ''));
-            $adminPortalUrl     = rtrim((string) env('ADMIN_FRONTEND_URL', ''));
-
-            // 1. Email to Applicant
-            $applicantEmail = $app->business_email;
-            if ($applicantEmail) {
-                try {
-                    Mail::to($applicantEmail, $app->applicant_name ?: $app->legal_name)
-                        ->send(new ApplicationSubmittedMail(
-                            app: $app,
-                            portalUrl: $applicantPortalUrl,
-                            isInternalNotice: false
-                        ));
-                    Log::info('Applicant submission email sent', ['recipient' => $applicantEmail]);
-                } catch (\Throwable $e) {
-                    Log::error('Applicant submission email failed to send', [
-                        'application_id' => $app->id,
-                        'recipient'      => $applicantEmail,
-                        'error'          => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            // 2. Email to Organisation Admin
-            $orgNotificationEmail = env('APP_NOTIFICATION_EMAIL');
-            if ($orgNotificationEmail) {
-                try {
-                    Mail::to($orgNotificationEmail)
-                        ->send(new ApplicationSubmittedMail(
-                            app: $app,
-                            portalUrl: $adminPortalUrl,
-                            isInternalNotice: true
-                        ));
-                    Log::info('Organisation notification email sent', ['recipient' => $orgNotificationEmail]);
-                } catch (\Throwable $e) {
-                    Log::error('Organisation notification email failed to send', [
-                        'application_id' => $app->id,
-                        'recipient'      => $orgNotificationEmail,
-                        'error'          => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            // 3. In-App Notifications (Applicant + All 3 Admins)
-            ApplicantNotificationHelper::notifyApplicationSubmitted($app);
-            AdminNotificationHelper::notifyApplicationSubmitted($app);
-            OperationsOfficerAdminNotificationHelper::notifyApplicationSubmitted($app);
-            MembershipAdminNotificationHelper::notifyApplicationSubmitted($app);
-
-            return ApplicationActionResponseData::success(
-                message: "Application for {$app->legal_name} submitted successfully.",
-                application: ApplicationResponseData::fromModel($app),
-            );
-        } catch (\Throwable $e) {
-            Log::error('Application creation failed', ['error' => $e->getMessage()]);
-            return ApplicationActionResponseData::error('Submission failed: ' . $e->getMessage());
-        }
-    }
-
-    public function saveDraft1(ApplicationRequestData $data): ApplicationActionResponseData
-    {
-        try {
-            // 1. Transaction strictly for persistence
-            $app = DB::transaction(function () use ($data) {
-                $existing = null;
-                if ($data->id) {
-                    $existing = $this->repository->findById($data->id);
-                } elseif (! empty($data->businessEmail)) {
-                    $existing = ApplicationModel::where('business_email', $data->businessEmail)
-                        ->where('status', 'Draft')
-                        ->first();
-                }
-
-                $payload = array_filter($data->toArray(), fn ($v) => ! is_null($v));
-                $payload['status'] = 'Draft';
-
-                if ($existing) {
-                    $app = $this->repository->update($existing, $payload);
-                } else {
-                    $app = $this->repository->create($payload);
-                }
-
-                if (! empty($data->uploads)) {
-                    $paths = $this->attachments->storeAll($app->id, $data->uploads);
-                    if (! empty($paths)) {
-                        $merged = array_merge($app->attachments ?? [], $paths);
-                        $app = $this->repository->update($app, ['attachments' => $merged]);
-                    }
-                }
-
-                return $app;
-            });
-
-            // 2. Email to Applicant
-            $recipientEmail = $app->business_email;
-            if ($recipientEmail) {
-                try {
-                    Mail::to($recipientEmail, $app->applicant_name ?: $app->legal_name)
-                        ->send(new ApplicationDraftSavedMail($app));
-                } catch (\Throwable $e) {
-                    Log::error('Draft confirmation email failed to send', [
-                        'application_id' => $app->id,
-                        'recipient'      => $recipientEmail,
-                        'error'          => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            // 3. In-App Notifications (Applicant + All 3 Admins)
-            ApplicantNotificationHelper::notifyDraftSaved($app);
-            AdminNotificationHelper::notifyDraftSaved($app);
-            OperationsOfficerAdminNotificationHelper::notifyDraftSaved($app);
-            MembershipAdminNotificationHelper::notifyDraftSaved($app);
-
-            return ApplicationActionResponseData::success(
-                message: 'Draft saved to server successfully.',
-                application: ApplicationResponseData::fromModel($app),
-            );
-        } catch (\Throwable $e) {
-            Log::error('Draft save failed', ['error' => $e->getMessage()]);
-            return ApplicationActionResponseData::error('Failed to save draft: ' . $e->getMessage());
-        }
-    }
-
-    public function updateStatus(ApplicationModel $application, string $status): ApplicationActionResponseData
+public function updateStatus(ApplicationModel $application, string $status): ApplicationActionResponseData
     {
         try {
             $application->update(['status' => $status]);
@@ -440,6 +278,11 @@ public function saveDraft(ApplicationRequestData $data): ApplicationActionRespon
             AdminNotificationHelper::notifyStatusUpdated($app, $status);
             OperationsOfficerAdminNotificationHelper::notifyStatusUpdated($app, $status);
             MembershipAdminNotificationHelper::notifyStatusUpdated($app, $status);
+
+            // 3. In-App Notification to Finance Admin if 'Approved awaiting payment'
+            if (trim($status) === 'Approved awaiting payment') {
+                FinanceAdminNotificationHelper::notifyApprovedAwaitingPayment($app);
+            }
 
             return ApplicationActionResponseData::success(
                 message: 'Application status updated successfully.',

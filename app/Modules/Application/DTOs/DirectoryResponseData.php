@@ -14,6 +14,7 @@ class DirectoryResponseData
         public readonly array   $services,
         public readonly array   $coverage,
         public readonly string  $city,
+        public readonly string $registered_address,
         public readonly string  $district,
         public readonly ?string $website,
         public readonly ?string $email,
@@ -48,6 +49,7 @@ class DirectoryResponseData
         return new self(
             id:          $app->id,
             name:        $name,
+            registered_address: $app->registered_address,
             legalName:   $app->legal_name ?? '',
             description: $description,
             services:    $services,
@@ -78,6 +80,7 @@ class DirectoryResponseData
         return [
             'id'          => $this->id,
             'name'        => $this->name,
+            'registered_address'=>$this->registered_address,
             'legal_name'  => $this->legalName,
             'description' => $this->description,
             'services'    => $this->services,

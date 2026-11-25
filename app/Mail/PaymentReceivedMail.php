@@ -13,19 +13,22 @@ class PaymentReceivedMail extends Mailable
 
     public PaymentModel $payment;
     public string $applicantName;
+    public string $status;
     public string $portalUrl;
     public string $appName;
     public string $supportEmail;
 
     public function __construct(
         PaymentModel $payment,
-        string $applicantName
+        string $applicantName,
+        string $status = 'Active'
     ) {
         $this->payment       = $payment;
         $this->applicantName = $applicantName;
-        $this->portalUrl     = config('app.frontend_url');
-        $this->appName       = config('app.name', 'ISPAU');
-        $this->supportEmail  = config('mail.from.address',);
+        $this->status        = $status;
+        $this->portalUrl     = (string) config('app.frontend_url', env('FRONTEND_URL', ''));
+        $this->appName       = (string) config('app.name', 'ISPAU');
+        $this->supportEmail  = (string) config('mail.from.address', '');
     }
 
     public function build(): self

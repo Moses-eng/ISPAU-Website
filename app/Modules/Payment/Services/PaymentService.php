@@ -2,7 +2,10 @@
 
 namespace App\Modules\Payment\Services;
 
+use App\Helpers\AdminNotificationHelper;
 use App\Helpers\ApplicantNotificationHelper;
+use App\Helpers\MembershipAdminNotificationHelper;
+use App\Helpers\OperationsOfficerAdminNotificationHelper;
 use App\Mail\PaymentReceivedMail;
 use App\Modules\Application\Models\ApplicationModel;
 use App\Modules\Payment\DTOs\PaymentActionResponseData;
@@ -82,49 +85,67 @@ class PaymentService implements PaymentServiceInterface
                 return $this->repository->create($attributes);
             });
 
-            // 1. Fetch applicant name and email using ApplicationModel helper methods
             $applicantId   = $createdPayment->applicant_id;
             $applicantName = ApplicationModel::getApplicateName($applicantId) ?? 'Applicant';
             $applicantMail = ApplicationModel::getApplicateEmail($applicantId);
 
-            // 2. Create in-portal applicant notification
+            // 1. Update Application status to "Active" and dispatch status notifications
+            if ($applicantId) {
+                $application = ApplicationModel::find($applicantId);
+                if ($application) {
+                    $application->update(['status' => 'Active']);
+                    $freshApp = $application->fresh();
+
+                    // Notify applicant and all 3 admins about the status change to Active
+                    ApplicantNotificationHelper::notifyStatusUpdated($freshApp, 'Active');
+                    AdminNotificationHelper::notifyStatusUpdated($freshApp, 'Active');
+                    OperationsOfficerAdminNotificationHelper::notifyStatusUpdated($freshApp, 'Active');
+                    MembershipAdminNotificationHelper::notifyStatusUpdated($freshApp, 'Active');
+                }
+            }
+
+            // 2. In-portal applicant notification for payment receipt
             if ($applicantId) {
                 ApplicantNotificationHelper::notifyPaymentCreated($createdPayment, $applicantName);
             }
 
-            // 3. Send professional confirmation email
-            $this->sendPaymentReceivedEmail($createdPayment, $applicantMail, $applicantName);
+            // 3. Send confirmation email with 'Active' status
+            $this->sendPaymentReceivedEmail(
+                payment: $createdPayment,
+                recipientEmail: $applicantMail,
+                recipientName: $applicantName,
+                status: 'Active'
+            );
 
-            Log::info('Payment created & notification dispatched', [
-                'payment_id' => $createdPayment->payment_id ?? $createdPayment->id,
-                'payment_no' => $createdPayment->payment_no,
-                'recipient'  => $applicantMail,
+            Log::info('Payment created & application activated', [
+                'payment_id'     => $createdPayment->payment_id ?? $createdPayment->id,
+                'payment_no'     => $createdPayment->payment_no,
+                'applicant_id'   => $applicantId,
+                'updated_status' => 'Active',
+                'recipient'      => $applicantMail,
             ]);
 
-        // ============================================================
-        // NEW: record the subscription for this payment
-        // ============================================================
-        if ($createdPayment->invoice_id && $createdPayment->applicant_id) {
-            try {
-                app(SubscriptionServiceInterface::class)
-                    ->recordFromPayment(
-                        applicantId: $createdPayment->applicant_id,
-                        invoiceId:   $createdPayment->invoice_id,
-                        paymentId:   $createdPayment->payment_id,
-                    );
-            } catch (\Throwable $e) {
-                // Never fail the payment because subscription bookkeeping failed
-                Log::error('Subscription recording failed after payment', [
-                    'payment_id'   => $createdPayment->payment_id,
-                    'applicant_id' => $createdPayment->applicant_id,
-                    'invoice_id'   => $createdPayment->invoice_id,
-                    'error'        => $e->getMessage(),
-                ]);
+            // 4. Record subscription for this payment
+            if ($createdPayment->invoice_id && $createdPayment->applicant_id) {
+                try {
+                    app(SubscriptionServiceInterface::class)
+                        ->recordFromPayment(
+                            applicantId: $createdPayment->applicant_id,
+                            invoiceId:   $createdPayment->invoice_id,
+                            paymentId:   $createdPayment->payment_id,
+                        );
+                } catch (\Throwable $e) {
+                    Log::error('Subscription recording failed after payment', [
+                        'payment_id'   => $createdPayment->payment_id,
+                        'applicant_id' => $createdPayment->applicant_id,
+                        'invoice_id'   => $createdPayment->invoice_id,
+                        'error'        => $e->getMessage(),
+                    ]);
+                }
             }
-        }
 
             return PaymentActionResponseData::success(
-                message: "Payment {$createdPayment->payment_no} created successfully.",
+                message: "Payment {$createdPayment->payment_no} created successfully. Application is now Active.",
                 payment: PaymentResponseData::fromModel($createdPayment),
             );
         } catch (\Throwable $e) {
@@ -187,8 +208,12 @@ class PaymentService implements PaymentServiceInterface
 
     // ==================== EMAIL HELPER ====================
 
-    private function sendPaymentReceivedEmail(PaymentModel $payment, ?string $recipientEmail, string $recipientName): void
-    {
+    private function sendPaymentReceivedEmail(
+        PaymentModel $payment,
+        ?string $recipientEmail,
+        string $recipientName,
+        string $status = 'Active'
+    ): void {
         if (empty($recipientEmail)) {
             Log::warning('Payment email skipped: No recipient email found for applicant.', [
                 'payment_id'   => $payment->payment_id ?? $payment->id,
@@ -199,7 +224,11 @@ class PaymentService implements PaymentServiceInterface
 
         try {
             Mail::to($recipientEmail)->send(
-                new PaymentReceivedMail($payment, $recipientName)
+                new PaymentReceivedMail(
+                    payment: $payment,
+                    applicantName: $recipientName,
+                    status: $status
+                )
             );
         } catch (\Throwable $e) {
             Log::error('Failed to dispatch payment confirmation email', [

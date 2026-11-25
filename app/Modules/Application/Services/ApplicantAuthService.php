@@ -83,11 +83,11 @@ class ApplicantAuthService
             ]);
         }
 
-        // Log::info('Applicant OTP issued (local only)', [
-        //         'application_id' => $application->id,
-        //         'email'          => $application->business_email,
-        //         'code'           => $code,
-        //     ]);
+        Log::info('Applicant OTP issued (local only)', [
+                'application_id' => $application->id,
+                'email'          => $application->business_email,
+                'code'           => $code,
+            ]);
 
         return ApplicantLoginResponseData::success(
             message: "A login code has been sent to {$this->maskEmail($application->business_email)}.",

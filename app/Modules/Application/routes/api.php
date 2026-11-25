@@ -55,7 +55,7 @@ Route::prefix('v1/auth/applicant')
     ->group(function () {
         Route::get ('/profile/show/{id}', [ApplicantProfileController::class, 'show']);
         Route::post('/logout',       [ApplicantAuthController::class, 'logout']);
-        Route::match(['put','patch'], 'profile/update', [ApplicantProfileController::class, 'update']);
+        Route::post('/profile/update', [ApplicantProfileController::class, 'update']);
 });
 
 

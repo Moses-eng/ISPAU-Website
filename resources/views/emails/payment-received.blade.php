@@ -44,6 +44,12 @@
             <span class="info-label">Payment Status &nbsp;&nbsp;&nbsp;</span>
             <span class="info-value" style="color: #16734a; font-weight: bold;">Confirmed / Paid</span>
         </div>
+        <div class="info-row">
+            <span class="info-label">Application Status &nbsp;&nbsp;&nbsp;</span>
+            <span class="info-value" style="color: #16734a; font-weight: bold; font-size: 14px;">
+                {{ $status ?? 'Active' }}
+            </span>
+        </div>
         <div class="info-row" style="border-top: 1px solid #e3d6da; margin-top: 8px; padding-top: 8px;">
             <span class="info-label" style="font-weight: bold;">Amount Paid &nbsp;&nbsp;&nbsp;</span>
             <span class="info-value" style="font-size: 16px; font-weight: bold; color: #650B23;">
@@ -57,7 +63,7 @@
         <ol>
             <li><strong>Membership Ledger: &nbsp;&nbsp;&nbsp;</strong> Your payment has been credited to your membership billing balance.</li>
             <li><strong>Official Receipt: &nbsp;&nbsp;&nbsp;</strong> You can view and download all formal receipts and account statements in your portal dashboard.</li>
-            <li><strong>Active Status: &nbsp;&nbsp;&nbsp;</strong> If this payment satisfies your pending invoice, your membership status will automatically transition to active.</li>
+            <li><strong>Active Standing: &nbsp;&nbsp;&nbsp;</strong> Your application and membership status is now <strong>{{ $status ?? 'Active' }}</strong> with full member privileges.</li>
         </ol>
     </div>
 

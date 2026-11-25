@@ -181,11 +181,21 @@ class ApplicationRule
         ];
     }
 
-    public static function applicantUpdateRules(string $applicationId): array
+public static function applicantUpdateRules(string $applicationId): array
     {
+        $rules = self::updateRules($applicationId);
+
+        // Allow applicant to keep their current business email
+        $rules['businessEmail'] = [
+            'sometimes',
+            'email',
+            'max:255',
+            Rule::unique('applications', 'business_email')->ignore($applicationId, 'id'),
+        ];
+
         return array_diff_key(
-            self::updateRules($applicationId),
-            array_flip(['status', 'password', 'password_confirmation']),
+            $rules,
+            array_flip(['status', 'password', 'password_confirmation', 'uploads', 'uploads.*']),
         );
     }
 }

@@ -21,7 +21,7 @@ require app_path('Modules/Payment/routes/api.php');
 require app_path('Modules/Statistics/routes/api.php');
 require app_path('Modules/Subscription/routes/api.php');
 require app_path('Modules/Blog/routes/api.php');
-// require app_path('Modules/AdminNotification/routes/api.php');
+require app_path('Modules/Activity/routes/api.php');
 // require app_path('Modules/AdminNotification/routes/api.php');
 // require app_path('Modules/AdminNotification/routes/api.php');
 // require app_path('Modules/AdminNotification/routes/api.php');

@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Modules\Application\Models\ApplicationModel;
 use App\Modules\FinanceAdminNotification\Models\FinanceAdminNotificationModel;
 use Illuminate\Support\Facades\Log;
 
@@ -35,6 +36,27 @@ class FinanceAdminNotificationHelper
             ]);
             return null;
         }
+    }
+
+    /**
+     * Notify finance when an application is approved and awaiting invoice / payment.
+     */
+    public static function notifyApprovedAwaitingPayment(ApplicationModel $application): ?FinanceAdminNotificationModel
+    {
+        $applicantName = $application->applicant_name ?: $application->legal_name;
+        $appNumber = $application->application_number ? " (#{$application->application_number})" : "";
+
+        $title = 'Application Approved — Awaiting Payment';
+        $message = "Application for '{$application->legal_name}'{$appNumber} has been approved and requires invoice/payment tracking.";
+
+        return self::createNotification(
+            title: $title,
+            message: $message,
+            applicantId: $application->id,
+            applicantName: $applicantName,
+            applicantEmail: $application->business_email,
+            type: 'info'
+        );
     }
 
     /**

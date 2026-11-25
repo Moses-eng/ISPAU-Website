@@ -25,19 +25,13 @@ class ApplicantProfileController extends Controller
             $response->isSuccess() ? 200 : 404
         );
     }
-
-    /** PATCH /api/v1/auth/applicant/profile/update */
+/** POST /api/v1/auth/applicant/profile/update */
     public function update(Request $request): JsonResponse
     {
         $application = $request->user();
-
-        $request->validate(ApplicationRule::updateRules($application->id));
-
-        $response = $this->profileService->update(
-            $application,
-            ApplicationRequestData::fromRequest($request, $application->status),
-        );
-
+        // Validate only fields editable by applicant, ignoring self on unique email checks
+        $validated = $request->validate(ApplicationRule::applicantUpdateRules($application->id));
+        $response = $this->profileService->update($application, $validated);
         return response()->json(
             $response->toArray(),
             $response->isSuccess() ? 200 : 400
