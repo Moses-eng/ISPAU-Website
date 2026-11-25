@@ -1,3 +1,7 @@
+import { useState } from "react"
+import { applicationHistory, decisionReason, useApplicantPortal } from "../services/useApplicantPortal"
+import Timeline from "@/components/dashboard/Timeline"
+import CountBadge from "@/components/ui/CountBadge"
 // src/features/portal/pages/MemberOverview.tsx
 
 import type { LiveApplication } from "@/apiServices/webAplicatService"
@@ -16,6 +20,11 @@ export default function MemberOverview({
   onNavigate,
   onRefresh,
 }: MemberOverviewProps) {
+  const portal = useApplicantPortal()
+  const [openNotice, setOpenNotice] = useState("")
+  const [noticeError, setNoticeError] = useState("")
+  const history = applicationHistory(app)
+  const decision = decisionReason(app)
   const active = app.status === "Active"
   const legalName = app.legal_name || app.legalName || "Your Organisation"
   const tier = app.requested_tier || app.requestedTier || "ISP Member"
@@ -32,11 +41,11 @@ export default function MemberOverview({
   return (
     <>
       <PageHeader
-        title={active ? "Your ISPAU Membership" : "Your Membership Application"}
+        title={active ? "Your ISPAU Membership" : "Application status"}
         description={legalName}
         action={
           <div className="flex gap-2">
-            <Button kind="secondary" onClick={() => void onRefresh()}>
+            <Button kind="secondary" onClick={() => void Promise.all([onRefresh(), portal.refresh()])}>
               Refresh status
             </Button>
             {active ? (
@@ -47,7 +56,7 @@ export default function MemberOverview({
               <Button onClick={() => onNavigate("application")}>
                 Continue Application
               </Button>
-            ) : null}
+            ) : app.status === "Approved awaiting payment" ? <Button kind="secondary" onClick={() => onNavigate("invoices")}>View invoices</Button> : null}
           </div>
         }
       />
@@ -95,9 +104,9 @@ export default function MemberOverview({
                 Active:
                   "Your membership is active and in good standing with ISPAU.",
                 Deferred:
-                  "Your application was deferred. Please contact the Secretariat for guidance.",
+                  decision.reason || "Your application was deferred. Please contact the Secretariat for guidance.",
                 Declined:
-                  "Your application has been declined. Please reach out to ISPAU support.",
+                  decision.reason || "Your application has been declined. Please reach out to ISPAU support.",
               } as Record<string, string>
             )[app.status] || "Your application is being processed."
           }
@@ -142,6 +151,26 @@ export default function MemberOverview({
           </div>
         )}
       </section>
+
+      <div className="workspace-review-grid">
+        <section className="workspace-panel">
+          <h2>Application progress</h2>
+          {history.length ? <Timeline items={history} /> : <p>No status history has been recorded for this application yet.</p>}
+        </section>
+        <section className="workspace-panel" id="organisation-notices">
+          <h2>Organisation notices <CountBadge count={portal.unreadNotices} label="unread notices" /></h2>
+          {portal.loading && <p role="status">Loading organisation notices…</p>}
+          {portal.error && <p role="alert">{portal.error} <Button kind="ghost" onClick={() => void portal.refresh()}>Retry notices</Button></p>}
+          {noticeError && <p role="alert">{noticeError}</p>}
+          {portal.notices.map((notice) => <details className="workspace-history" key={notice.key} open={openNotice === notice.key}>
+            <summary onClick={(event) => { event.preventDefault(); setNoticeError(""); setOpenNotice(openNotice === notice.key ? "" : notice.key); if (openNotice !== notice.key) void portal.openNotice(notice).catch((error: Error) => setNoticeError(error.message)) }}>{notice.title} <CountBadge count={notice.unread ? 1 : 0} label="unread notice" /></summary>
+            <p className="whitespace-pre-line">{notice.body}</p>
+            {notice.date && Number.isFinite(Date.parse(notice.date)) && <small>{new Date(notice.date).toLocaleString("en-GB")}</small>}
+          </details>)}
+          {!portal.loading && !portal.error && !portal.notices.length && <p>No notices yet. Any clarification, admission or welcome notice will appear here.</p>}
+          <Button kind="ghost" onClick={() => onNavigate("notifications")}>View all notifications</Button>
+        </section>
+      </div>
 
       <div className="workspace-review-grid">
         <section className="workspace-panel">

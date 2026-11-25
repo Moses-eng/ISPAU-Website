@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Button from "@/components/ui/Button"
 import Icon from "@/components/ui/Icon"
 import PageHero from "@/components/ui/PageHero"
@@ -6,11 +6,14 @@ import PublicShell from "@/components/layout/PublicShell"
 import Dialog from "@/components/dashboard/Dialog"
 import { ENABLE_TRADE_CREDIT } from "@/features/trade-credit/feature"
 import type { View } from "@/types/View"
+import ActivitiesSection from "../components/ActivitiesSection"
+// Backend (programmes): this array supplies the six service cards, filters and dialogs.
+// If database-managed later, supply records with the same fields here.
 const programmes = [
   {
     id: "policy",
     image:
-      "https://images.unsplash.com/photo-1573164574511-73c773193279?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=1400",
+      "/blog-images/collaboration.jpg",
     name: "Policy and regulatory engagement",
     category: "Policy",
     icon: "users",
@@ -21,7 +24,7 @@ const programmes = [
   {
     id: "infrastructure",
     image:
-      "https://images.unsplash.com/photo-1763284710278-417ddaf2beb9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=1400",
+      "/activity-images/infrastructure.jpg",
     name: "Infrastructure sharing",
     category: "Technical",
     icon: "network",
@@ -32,7 +35,7 @@ const programmes = [
   {
     id: "security",
     image:
-      "https://images.unsplash.com/photo-1629837093109-11325d6e7afd?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=1400",
+      "/blog-images/skills.jpg",
     name: "Cybersecurity and resilience",
     category: "Technical",
     icon: "shield",
@@ -43,7 +46,7 @@ const programmes = [
   {
     id: "training",
     image:
-      "https://images.unsplash.com/photo-1629837093109-11325d6e7afd?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=1400",
+      "/blog-images/skills.jpg",
     name: "Training and certification activities",
     category: "Technical",
     icon: "book",
@@ -54,7 +57,7 @@ const programmes = [
   {
     id: "peering",
     image:
-      "https://images.unsplash.com/photo-1594915440248-1e419eba6611?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=1400",
+      "/blog-images/networks.jpg",
     name: "Peering and internet exchange discussions",
     category: "Technical",
     icon: "network",
@@ -66,7 +69,7 @@ const programmes = [
   {
     id: "trade",
     image:
-      "https://images.unsplash.com/photo-1573164574511-73c773193279?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=1400",
+      "/blog-images/collaboration.jpg",
     name: "Trade Credit and Payment Assurance",
     category: "Member services",
     icon: "shield",
@@ -79,6 +82,10 @@ const programmes = [
 export default function Services({ go }: { go: (view: View) => void }) {
   const [category, setCategory] = useState("All programmes"),
     [selected, setSelected] = useState("")
+  useEffect(() => {
+    if (location.hash.includes("section=activities"))
+      document.getElementById("activities")?.scrollIntoView()
+  }, [])
   const current = programmes.find((p) => p.id === selected)
   const rows = programmes.filter(
     (p) => category === "All programmes" || p.category === category,
@@ -131,6 +138,10 @@ export default function Services({ go }: { go: (view: View) => void }) {
           ))}
         </div>
       </section>
+      {/* Backend: connect useActivities in ../data/activities.ts once.
+          Home Current/Upcoming and activity detail pages use that same source;
+          do not add separate Home API calls. Preview data stays there for now. */}
+      <ActivitiesSection />
       {current && (
         <Dialog
           title={current.name}

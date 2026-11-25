@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import Home from "@/features/public/pages/Home"
 import About from "@/features/public/pages/About"
 import Membership from "@/features/public/pages/Membership"
+import ActivityPage from "@/features/public/pages/ActivityPage"
 import Services from "@/features/public/pages/Services"
 import Blog from "@/features/public/pages/Blog"
 import Contact from "@/features/public/pages/Contact"
@@ -52,9 +53,12 @@ export default function App() {
   const directoryPath = /^\/members\/?$/.test(pathname)
   const isCompanyProfile = !directoryPath && pathname.startsWith("/members/")
 
+  const activitySlug = pathname.match(/^\/activities\/([^/]+)\/?$/)?.[1] || ""
   const blogSlug = pathname.match(/^\/blog\/([^/]+)\/?$/)?.[1] || ""
   const view = (
-    /^\/blog\/?$/.test(pathname)
+    activitySlug
+      ? "services"
+      : /^\/blog\/?$/.test(pathname)
       ? "blog"
       : pathname.startsWith("/blog/")
         ? "blog-post"
@@ -85,7 +89,9 @@ export default function App() {
     home: <Home go={go} />,
     about: <About go={go} />,
     membership: <Membership go={go} />,
-    services: <Services go={go} />,
+    services: activitySlug ? (
+      <ActivityPage key={activitySlug} slug={activitySlug} go={go} />
+    ) : <Services go={go} />,
     blog: <Blog go={go} />,
     "blog-post": <Blog key={blogSlug} go={go} slug={blogSlug || "unavailable"} />,
     contact: <Contact go={go} />,
@@ -122,7 +128,7 @@ export default function App() {
 
   return (
     <>
-      {view !== "blog" && view !== "blog-post" && (
+      {!activitySlug && view !== "blog" && view !== "blog-post" && (
         <ProfileSeo
           directory={view === "directory"}
           unavailable={view === "company-profile" && !memberId}

@@ -151,3 +151,24 @@
   color: var(--burgundy-primary);
   font-weight: 700;
 }
+
+/* Mobile page links: pale interaction state and a solid selected button. */
+@media (max-width: 1100px) {
+  .site-header .header-inner > nav > button,
+  .site-header .header-inner > nav > .account-menu > button {
+    border: 0;
+    border-radius: 6px;
+    background: white;
+    box-shadow: none;
+  }
+  .site-header .header-inner > nav > button:is(:hover, :focus-visible, :active),
+  .site-header .header-inner > nav > .account-menu > button:is(:hover, :focus-visible, :active) {
+    background: var(--burgundy-tint);
+    color: var(--burgundy-primary);
+  }
+  .site-header .header-inner > nav > button.active,
+  .site-header .header-inner > nav:is([data-current-view="membership"], [data-current-view="directory"], [data-current-view="company-profile"]) > .account-menu > button {
+    background: var(--burgundy-primary);
+    color: white;
+  }
+}

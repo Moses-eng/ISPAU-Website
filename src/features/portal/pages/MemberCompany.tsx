@@ -30,33 +30,46 @@ export default function MemberCompany({
     e.preventDefault()
     setSaving(true)
 
+    // Old way of picking form data
     const formData = new FormData(e.currentTarget)
     const payload = Object.fromEntries(formData.entries())
 
-    const res = await webAplicatService.updateApplication(app.id, payload)
+    const res = await webAplicatService.updateProfile(app.id, payload)
     setSaving(false)
 
     if (res.success) {
-      onFeedback("Company details updated in the database.")
+      onFeedback(res.message || "Company details updated successfully.")
+
       if (res.data?.application) {
         onUpdated(res.data.application)
       } else {
         onUpdated({
           ...app,
-          legal_name: String(payload.legalName || ""),
-          trading_name: String(payload.tradingName || ""),
-          registered_address: String(payload.registeredAddress || ""),
-          uganda_address: String(payload.ugandaAddress || ""),
-          business_email: String(payload.businessEmail || ""),
-          business_phone: String(payload.businessPhone || ""),
-          website: String(payload.website || ""),
-          representative_name: String(payload.representativeName || ""),
-          representative_role: String(payload.representativeRole || ""),
-          representative_email: String(payload.representativeEmail || ""),
-          representative_phone: String(payload.representativePhone || ""),
-          billing_email: String(payload.billingEmail || ""),
-          billing_contact: String(payload.billingContact || ""),
-          invoice_address: String(payload.invoiceAddress || ""),
+          legal_name: String(payload.legalName ?? app.legal_name ?? ""),
+          legalName: String(payload.legalName ?? app.legalName ?? ""),
+          trading_name: String(payload.tradingName ?? app.trading_name ?? ""),
+          tradingName: String(payload.tradingName ?? app.tradingName ?? ""),
+          registered_address: String(payload.registeredAddress ?? app.registered_address ?? ""),
+          registeredAddress: String(payload.registeredAddress ?? app.registeredAddress ?? ""),
+          business_email: String(payload.businessEmail ?? app.business_email ?? ""),
+          businessEmail: String(payload.businessEmail ?? app.businessEmail ?? ""),
+          business_phone: String(payload.businessPhone ?? app.business_phone ?? ""),
+          businessPhone: String(payload.businessPhone ?? app.businessPhone ?? ""),
+          website: String(payload.website ?? app.website ?? ""),
+          representative_name: String(payload.representativeName ?? app.representative_name ?? ""),
+          representativeName: String(payload.representativeName ?? app.representativeName ?? ""),
+          representative_role: String(payload.representativeRole ?? app.representative_role ?? ""),
+          representativeRole: String(payload.representativeRole ?? app.representativeRole ?? ""),
+          representative_email: String(payload.representativeEmail ?? app.representative_email ?? ""),
+          representativeEmail: String(payload.representativeEmail ?? app.representativeEmail ?? ""),
+          representative_phone: String(payload.representativePhone ?? app.representative_phone ?? ""),
+          representativePhone: String(payload.representativePhone ?? app.representativePhone ?? ""),
+          billing_email: String(payload.billingEmail ?? app.billing_email ?? ""),
+          billingEmail: String(payload.billingEmail ?? app.billingEmail ?? ""),
+          billing_contact: String(payload.billingContact ?? app.billing_contact ?? ""),
+          billingContact: String(payload.billingContact ?? app.billingContact ?? ""),
+          invoice_address: String(payload.invoiceAddress ?? app.invoice_address ?? ""),
+          invoiceAddress: String(payload.invoiceAddress ?? app.invoiceAddress ?? ""),
         })
       }
     } else {

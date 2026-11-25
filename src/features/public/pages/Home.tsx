@@ -7,6 +7,7 @@ import SectionTitle from "@/components/ui/SectionTitle"
 import SectionAccent from "@/components/ui/SectionAccent"
 import Tag from "@/components/ui/Tag"
 import type { View } from "@/types/View"
+import HomeActivitiesSection from "../components/HomeActivitiesSection"
 import { mandates } from "@/features/public/data/mandates"
 import { useEffect, useMemo, useState } from "react"
 import directoryService from "@/apiServices/directoryService"
@@ -218,6 +219,8 @@ export default function Home({ go }: { go: (v: View) => void }) {
         </div>
       </section>
 
+      <HomeActivitiesSection />
+
       <section className="split-feature section">
         <div>
           <SectionAccent />
@@ -309,28 +312,7 @@ export default function Home({ go }: { go: (v: View) => void }) {
         </div>
       </section>
 
-      <section className="section activity-section">
-        <SectionTitle
-          eyebrow="Activities"
-          title="Learning, collaboration and industry dialogue."
-        />
-        <div className="activity-ledger">
-          {[
-            "Cybersecurity Awareness and Resilience",
-            "Internet Exchange and Peering Forum",
-            "Technical Training and Skills Development",
-          ].map((x, i) => (
-            <article className="activity-card" key={x}>
-              <span className="activity-no">0{i + 1}</span>
-              <h3>{x}</h3>
-              <p>Programme details to be confirmed</p>
-              <button className="text-link">
-                Learn more <Icon name="arrow" size={16} />
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
+
     </PublicShell>
   )
 }

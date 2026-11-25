@@ -1,8 +1,6 @@
 // src/components/dashboard/Notification.tsx
-import { useState, useEffect } from "react"
+import { useApplicantPortal } from "@/features/portal/services/useApplicantPortal"
 import Icon from "@/components/ui/Icon"
-import authStore from "@/apiServices/authStore"
-import applicantNotificationService from "@/apiServices/applicantNotificationService"
 import { navigateTo } from "@/app/navigation"
 
 export default function NotificationMenu({
@@ -13,38 +11,9 @@ export default function NotificationMenu({
   items?: unknown[]
   onNavigate?: (route: string) => void
 }) {
-  const [unreadCount, setUnreadCount] = useState<number>(0)
-
-  // 1. Fetch unread count using applicantNotificationService
-  useEffect(() => {
-    let isMounted = true
-
-    const fetchUnread = async () => {
-      const applicantId = authStore.getUserId() || actorKey
-      if (!applicantId) return
-
-      try {
-        const res = await applicantNotificationService.recent(applicantId, 1)
-        if (res.success && isMounted) {
-          setUnreadCount(res.data.unread_count ?? 0)
-        }
-      } catch (err) {
-        console.error("Failed to fetch unread notification count", err)
-      }
-    }
-
-    void fetchUnread()
-
-    // Poll every 30 seconds for live updates
-    const timer = setInterval(() => {
-      void fetchUnread()
-    }, 30000)
-
-    return () => {
-      isMounted = false
-      clearInterval(timer)
-    }
-  }, [actorKey])
+  const portal = useApplicantPortal()
+  const unreadCount = portal.unreadNotices + portal.unreadInvoices
+  void actorKey
 
   // 2. Properly navigate to /#/notifications
   const handleOpenNotifications = () => {

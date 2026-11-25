@@ -3,13 +3,13 @@ import { membershipFormSchema } from "../data/membershipFormSchema"
 import type { FileRecord, Values } from "../types/workspace"
 
 export default function ApplicationReviewSummary({
-  sections, fields, values, evidence, onEdit,
+  sections, fields = [], values, evidence, onEdit,
 }: {
   sections: string[]
-  fields: string[][]
+  fields?: string[][]
   values: Values
   evidence: FileRecord[]
-  onEdit: (index: number) => void
+  onEdit?: (index: number) => void
 }) {
   // Display-only: these values never replace the backend request payload.
   const reviewFields = [
@@ -19,7 +19,7 @@ export default function ApplicationReviewSummary({
     ["applicantName", "applicantRole", "applicantEmail", "applicantPhone", "sameRepresentative", "representativeName", "representativeRole", "representativeEmail", "representativePhone", "alternateRepresentative", "authorityConfirmed"],
     ["billingEmail", "billingContact", "invoiceAddress", "tin", "purchaseOrder", "customerFacing", ...(values.customerFacing === "Yes" ? ["supportContact"] : [])],
     fields[5] || [],
-    ["joiningReasons", "priorities", "workingGroups", "publicName", "publicDescription", "publicServices", "publicCoverage", "publicWebsite", "publicContact", "publicLogo"],
+    ["joiningReasons", "priorities", "workingGroups", "publicName", "publicDescription", "publicServices", "publicCoverage", "publicWebsite", "publicContact", "publicLogo", ...(!onEdit ? ["directoryConsent", "promotionalConsent"] : [])],
   ]
   const labels: Record<string, string> = {
     ugandaAddress: "Post Office Box Number", pdpoReference: "PDPO reference", pdpoValidity: "PDPO validity",
@@ -27,7 +27,7 @@ export default function ApplicationReviewSummary({
     alternateRepresentative: "Alternate representative", publicLogo: "Public company logo", joiningReasons: "Reasons for joining",
     priorities: "Top priorities", workingGroups: "Working-group interests", publicName: "Public profile name",
     publicDescription: "Public profile description", publicServices: "Public profile services", publicCoverage: "Public profile coverage",
-    publicWebsite: "Public profile website", publicContact: "Public business contact", registrationEvidence: "Registration or establishment evidence",
+    publicWebsite: "Public profile website", publicContact: "Public business contact", supportingEvidence: "Additional supporting documents", directoryConsent: "Public directory permission", promotionalConsent: "Promotional communications permission", registrationEvidence: "Registration or establishment evidence",
     licenceEvidence: "Relevant licence evidence", authorityEvidence: "Representative authority evidence", pdpoEvidence: "PDPO evidence",
   }
   const label = (name: string) => {
@@ -52,9 +52,9 @@ export default function ApplicationReviewSummary({
 .application-review-files { list-style: none; margin: 0; padding: 0; }
 .application-review-files li + li { margin-top: 5px; }
 @media (max-width: 600px) { .application-review .workspace-record > div { grid-template-columns: minmax(0, 1fr); gap: 5px; } }`}</style>
-      <p className="helper">Review your answers below. Open a section to see its details, or select Edit to make a correction.</p>
+      <p className="helper">{onEdit ? "Review your answers below. Open a section to see its details, or select Edit to make a correction." : "Your submitted application is shown below. This record is read-only."}</p>
       {sections.slice(0, 7).map((section, index) => (
-        <details className="workspace-panel" key={section} open={index === 0}>
+        <details className="workspace-panel" key={section} open={!onEdit || index === 0}>
           <summary>{section}</summary>
           <dl className="workspace-record">
             {(reviewFields[index] || fields[index] || []).map(name => {
@@ -69,9 +69,10 @@ export default function ApplicationReviewSummary({
               )
             })}
           </dl>
-          <Button kind="ghost" onClick={() => onEdit(index)}>Edit {section}</Button>
+          {onEdit && <Button kind="ghost" onClick={() => onEdit(index)}>Edit {section}</Button>}
         </details>
       ))}
+      {!onEdit && <section className="workspace-panel" aria-label="Submission declarations"><h2>Submission declarations</h2><dl className="workspace-record">{["accuracyDeclaration", "authorityDeclaration", "rulesDeclaration", "hasRestrictions", "restrictionDetails", "restrictionsDeclaration", "privacyDeclaration"].map(name => <div key={name}><dt>{label(name)}</dt><dd>{answer(name)}</dd></div>)}</dl></section>}
     </section>
   )
 }

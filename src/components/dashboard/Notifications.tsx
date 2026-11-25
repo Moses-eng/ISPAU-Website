@@ -1,3 +1,5 @@
+import { navigateTo } from "@/app/navigation";
+import { useApplicantPortal, syncPortalNotices } from "@/features/portal/services/useApplicantPortal";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import authStore from "@/apiServices/authStore";
 import applicantNotificationService, {
@@ -12,6 +14,7 @@ interface NotificationsProps {go?: (view: View) => void;}
 type TabType = "all" | "unread" | "important";
 
 export default function Notifications({ go }: NotificationsProps) {
+  const portal = useApplicantPortal();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ text: string; error?: boolean } | null>(null);
@@ -102,6 +105,7 @@ export default function Notifications({ go }: NotificationsProps) {
 
         if (listRes.success) {
           setNotifications(listRes.data.items);
+          syncPortalNotices(applicantId, { items: listRes.data.items });
           setUnreadCount(listRes.data.unread_count);
         } else {
           setError(listRes.message);
@@ -147,6 +151,7 @@ export default function Notifications({ go }: NotificationsProps) {
     setActionInProgress(false);
 
     if (res.success) {
+      if (applicantId) syncPortalNotices(applicantId, { readIds: [notification.id] });
       setNotifications((prev) =>
         prev.map((n) => (n.id === notification.id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n))
       );
@@ -164,6 +169,7 @@ export default function Notifications({ go }: NotificationsProps) {
     setActionInProgress(false);
 
     if (res.success) {
+      syncPortalNotices(applicantId, { allRead: true });
       setFeedback({ text: "All notifications marked as read." });
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
@@ -180,6 +186,7 @@ export default function Notifications({ go }: NotificationsProps) {
     setActionInProgress(false);
 
     if (res.success) {
+      if (applicantId) syncPortalNotices(applicantId, { removeIds: [id] });
       setFeedback({ text: "Notification deleted." });
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       setSelectedIds((prev) => prev.filter((i) => i !== id));
@@ -199,6 +206,7 @@ export default function Notifications({ go }: NotificationsProps) {
     setActionInProgress(false);
 
     if (res.success) {
+      if (applicantId) syncPortalNotices(applicantId, { removeIds: selectedIds });
       setFeedback({ text: `${selectedIds.length} notifications deleted.` });
       setNotifications((prev) => prev.filter((n) => !selectedIds.includes(n.id)));
       setSelectedIds([]);
@@ -294,6 +302,14 @@ export default function Notifications({ go }: NotificationsProps) {
           </button>
         </div>
       )}
+
+      {portal.unreadInvoices > 0 && <section className="workspace-panel" aria-label="Unread invoices">
+        <h2>Unread invoices <span className="count-badge">{portal.unreadInvoices}</span></h2>
+        {portal.invoices.filter(portal.invoiceUnread).map(invoice => <article className="notification-item" key={invoice.id}>
+          <div><strong>{invoice.id}</strong><p>{[invoice.currency, invoice.total].filter(Boolean).join(" ")}</p></div>
+          <button type="button" className="btn btn-secondary" onClick={() => navigateTo(`/portal#/invoices?invoice=${encodeURIComponent(invoice.id)}`)}>View invoice</button>
+        </article>)}
+      </section>}
 
       {/* Summary Statistics */}
       <div className="workspace-summaries">

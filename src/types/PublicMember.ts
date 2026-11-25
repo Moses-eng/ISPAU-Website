@@ -15,6 +15,7 @@ export interface PublicMember {
   logo_url?: string | null;
   logoSrc?: string | null;
   initials?: string;
+  registered_address?: string;
   attachments?: {
     publicLogo?: string | null;
   };

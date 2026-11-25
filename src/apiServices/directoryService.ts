@@ -72,6 +72,7 @@ const formatMember = (m: any): PublicMember => {
     coverage: normalizeStringArray(m.coverage),
     city: m.city || "Kampala",
     district: m.district || "Central",
+    registered_address:m.registered_address || "",
     website: m.website || null,
     email: m.email || null,
     phone: m.phone || null,

@@ -74,7 +74,7 @@ export default function CompanyProfile({
             </div>
             <div>
               <span className="eyebrow">ISPAU member profile</span>
-              <h1>{member.name}</h1>
+              <h1>{member.legal_name}</h1>
               <p>{member.description}</p>
             </div>
           </div>
@@ -84,7 +84,7 @@ export default function CompanyProfile({
       <section className="section company-profile-body">
         <article>
           <span className="eyebrow">Company introduction</span>
-          <h2>About {member.name}</h2>
+          <h2>About {member.legal_name}</h2>
           <p>{member.description}</p>
           <div className="profile-ruled-list">
             <div>
@@ -101,11 +101,12 @@ export default function CompanyProfile({
         <aside className="public-contact-panel">
           <h2>Public business details</h2>
           <dl>
-            {(member.city || member.district) && (
+            {(member.registered_address) && (
               <>
                 <dt>Office location</dt>
                 <dd>
-                  {[member.city, member.district && `${member.district} District`].filter(Boolean).join(", ")}
+                  {member.registered_address}<br></br>
+                        Uganda
                 </dd>
               </>
             )}

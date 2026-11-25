@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 import { fileURLToPath, URL } from "node:url"
 
+// import { activityPages } from "./build/activityPages.ts"
 import { profilePages } from "./build/profilePages.ts"
 
 export default defineConfig(({ mode }) => ({
@@ -16,6 +17,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     tailwindcss(),
     profilePages(loadEnv(mode, process.cwd(), "")),
+    // activityPages(loadEnv(mode, process.cwd(), "")),
   ],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
 }))
+
+

@@ -1,3 +1,4 @@
+import { useApplicantPortal } from "@/features/portal/services/useApplicantPortal"
 import { workspaceAlerts } from "@/features/notifications/model"
 import { staffWorkspace as StaffWorkspace } from "./workspaceModules"
 import Login from "@/features/auth/pages/Login"
@@ -34,6 +35,7 @@ import { navigateTo } from "./navigation"
 import { session } from "@/apiServices/session"
 
 export default function DashboardApp({ url }: { url: string }) {
+  const portal = useApplicantPortal(!location.pathname.startsWith("/staff"))
   const credit = useCreditWorkspace()
   const { state, actor } = useMembershipWorkspace()
   const [switching, setSwitching] = useState(false)
@@ -141,10 +143,10 @@ export default function DashboardApp({ url }: { url: string }) {
           ),
       )
     : (
-        application?.stage === "Active"
+        (staff ? application?.stage : portal.application?.status) === "Active"
           ? memberNavigation
           : [
-              { id: "overview", label: "Overview", icon: "chart" },
+              { id: "overview", label: "Application status", icon: "chart" },
               { id: "application", label: "Application", icon: "file" },
               { id: "invoices", label: "Invoices", icon: "file" },
               { id: "account", label: "Account", icon: "lock" },
@@ -233,7 +235,7 @@ export default function DashboardApp({ url }: { url: string }) {
     )
 
   // --- Draft application: full-screen wizard -------------------------------
-  if (!staff && route === "application" && application?.stage === "Draft")
+  if (!staff && route === "application" && portal.application?.status === "Draft")
     return (
       <>
         <MembershipApplication
@@ -260,15 +262,15 @@ export default function DashboardApp({ url }: { url: string }) {
       actor={actor}
       navigation={navigation.map((item) => ({
         ...item,
-        count: alerts.counts[item.id] || 0,
+        count: !staff && item.id === "overview" ? portal.unreadNotices : !staff && ["invoices", "membership"].includes(item.id) ? portal.unreadInvoices : alerts.counts[item.id] || 0,
       }))}
       alerts={alerts.items}
       current={
         staff
-          ? staffGroup(route.split("/")[0])
-          : application?.stage === "Active"
-            ? memberGroup(route.split("/")[0])
-            : route.split("/")[0]
+          ? staffGroup(route.split(/[/?]/)[0])
+          : (staff ? application?.stage : portal.application?.status) === "Active"
+            ? memberGroup(route.split(/[/?]/)[0])
+            : route.split(/[/?]/)[0]
       }
       onNavigate={navigate}
       onIdentity={() => setSwitching(true)}
@@ -296,6 +298,7 @@ export default function DashboardApp({ url }: { url: string }) {
           />
         ) : (
           <MemberWorkspace
+            key={actor.id}
             // state={state}
             // actor={actor}
             route={route}

@@ -10,6 +10,7 @@ import {
   API_APPLICATION_DOWNLOAD_PDF,
   API_APPLICANT_RECEIPTS_UPLOAD,
   API_APPLICANT_SUBSCRIPTION,
+  API_APPLICANT_PROFILE_UPDATE,
 } from "./APIs";
 import authStore from "./authStore";
 
@@ -249,6 +250,40 @@ class WebAplicatService {
       };
     } catch (error) {
       const e = handleError(error, "Failed to load application profile.");
+      return {
+        success: false,
+        message: e.message,
+        data: null,
+        fieldErrors: e.fieldErrors,
+      };
+    }
+  }
+    /**
+   * Updates profile details directly in the database
+   */
+  async updateProfile(
+    updateId: string,
+    payload: Record<string, unknown> | FormData,
+  ): Promise<ApplicantProfileResponse> {
+    try {
+      let body: FormData | Record<string, unknown>;
+      if (payload instanceof FormData) {
+        body = payload;
+        if (!body.has("updateId")) {
+          body.append("updateId", updateId);
+        }
+      } else {
+        body = { ...payload, updateId };
+      }
+
+      const res = await axiosClient.post(API_APPLICANT_PROFILE_UPDATE, body);
+      return {
+        success: true,
+        message: res.data?.message ?? "Profile updated successfully.",
+        data: res.data?.data ?? null,
+      };
+    } catch (error) {
+      const e = handleError(error, "Could not update profile.");
       return {
         success: false,
         message: e.message,

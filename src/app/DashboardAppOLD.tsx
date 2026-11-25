@@ -296,8 +296,8 @@ export default function DashboardApp({ url }: { url: string }) {
           />
         ) : (
           <MemberWorkspace
-            state={state}
-            actor={actor}
+            // state={state}
+            // actor={actor}
             route={route}
             navigate={navigate}
             feedback={feedback}
@@ -341,5 +341,3 @@ export default function DashboardApp({ url }: { url: string }) {
     </WorkspaceShell>
   )
 }
-
-

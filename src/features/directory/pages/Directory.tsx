@@ -172,14 +172,15 @@ export default function Directory({ go }: { go: (v: View) => void }) {
                   </div>
 
                   <div className="member-listing-copy">
-                    <h3>{member.name}</h3>
+                    <h3>{member.legal_name}</h3>
                     <p>{member.description}</p>
                     <div className="member-facts">
                       <span>
                         <small>Office location</small>
                         <strong>
-                          {[member.city, member.district && `${member.district} District`].filter(Boolean).join(", ") || "Uganda"}
+                        {member.registered_address}
                         </strong>
+                        <p>Uganda</p>
                       </span>
                       <span>
                         <small>Main services</small>
@@ -192,7 +193,7 @@ export default function Directory({ go }: { go: (v: View) => void }) {
                     </div>
                   </div>
                   <a className="btn btn-secondary" href={profilePath(member)}>
-                    View {member.name} profile
+                    View {member.legal_name} profile
                   </a>
                 </article>
               )

@@ -19,7 +19,9 @@ export default function Header({ go }: { go: (view: View) => void }) {
   const compact = useMediaQuery("(max-width: 1100px)")
   const headerRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
-  const currentView = /^\/blog(?:\/|$)/.test(location.pathname)
+  const currentView = /^\/activities(?:\/|$)/.test(location.pathname)
+    ? "services"
+    : /^\/blog(?:\/|$)/.test(location.pathname)
     ? "blog"
     : location.hash.replace(/^#\/?/, "").split("?")[0] || "home"
 
@@ -68,6 +70,7 @@ export default function Header({ go }: { go: (view: View) => void }) {
           id="public-navigation"
           className={open ? "open" : ""}
           aria-label="Main navigation"
+          data-current-view={currentView}
           inert={compact && !open}
         >
           {publicNavigation.map(({ label, view }) =>

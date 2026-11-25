@@ -52,3 +52,9 @@ export const API_APPLICANT_SUBSCRIPTION = BASE_URL+'/api/v1/auth/applicant/subsc
 // ============================================================
 export const API_PUBLIC_BLOG_LIST = BASE_URL + '/api/v1/public/blog/list';
 export const API_PUBLIC_BLOG_SHOW = (slug: string) =>BASE_URL + `/api/v1/public/blog/show/${encodeURIComponent(slug)}`;
+
+// ============================================================
+// API ENDPOINTS (Public Activity)
+// ============================================================
+export const API_PUBLIC_ACTIVITY_LIST = BASE_URL + '/api/v1/public/activity/list';
+export const API_PUBLIC_ACTIVITY_SHOW = (slug: string) =>BASE_URL + `/api/v1/public/activity/show/${encodeURIComponent(slug)}`;

@@ -142,8 +142,8 @@ export default function Login({
 
     const { token, application } =
       res.data as unknown as VerifyResponsePayload
-    if (application?.status !== "Draft"){
 
+    if (application?.status !== "Draft"){
       const storedUser: StoredUser = {
         id: application?.id ?? "",
         name:application?.legal_name ||application?.applicant_name ||"Applicant",
@@ -162,7 +162,7 @@ export default function Login({
       }
     }
 
-  if (application) {
+  if (application?.status === "Draft") {
       sessionStorage.setItem("ispau.draft_application", JSON.stringify(application))
     }
 
